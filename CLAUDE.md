@@ -11,15 +11,16 @@
 
 ## 架构规则
 
-0. **两个入口**：`index.html` + `src/game-main.js` 是游戏，`editor.html` + `src/editor-main.js` 是编辑器。游戏的依赖树里不能出现 `src/editor/`、`src/sim/`（打包后用 `grep '// ---- src/editor' dist/index.html` 检查）。游戏部分需要通知编辑器时，用 `store.js` 的 `emit()` / `on()`，不要直接 import 编辑器模块。
+0. **两个入口**（游戏专用的界面放在 `src/game/`，例如标题画面和暂停菜单）：`index.html` + `src/game-main.js` 是游戏，`editor.html` + `src/editor-main.js` 是编辑器。游戏的依赖树里不能出现 `src/editor/`、`src/sim/`（打包后用 `grep '// ---- src/editor' dist/index.html` 检查）。游戏部分需要通知编辑器时，用 `store.js` 的 `emit()` / `on()`，不要直接 import 编辑器模块。
 
 1. **`src/core/` 不碰 DOM。** 不能 import `src/app/`、`src/editor/`、`src/play/`、`src/sim/` 里的任何东西。核心函数把剧情数据作为第一个参数 `G` 显式传入，不读全局状态。新的游戏规则先写进 core，并配单元测试。
 2. **界面模块共享的可变状态放在 `src/app/store.js` 的 `S` 对象里**（`S.G` 当前剧情、`S.P` 当前轮回、`S.sel` 选中节点等）。只在一个模块里赋值的状态，可以用该模块导出的 `let`。
 3. **所有模块的顶层名字全局唯一，import 不用 `as` 改名。** 打包脚本是把模块直接拼接起来的，重名会让构建失败（脚本会检查并报出重名）。
 4. **零 npm 依赖。** 浏览器原生 ES 模块 + Node 内置工具。确实需要第三方库时，先在路线图里讨论。
 5. 剧情数据存在 `stories/*.json`，读取一律走 `parseStory()`（先 `validateStory()` 结构校验，再 `normalize()`）。新增字段时在 `O()` / `N()` 里给默认值，并在 `normalize()` 里兼容旧数据。格式不兼容地改变时把 `FORMAT_VERSION` 加一。改了数据格式，同步更新 `docs/STORY_FORMAT.md`。
-6. 需要随机数的核心逻辑接受可选的种子（见 `makeRng()`），测试里用固定种子。
-7. 新写或大改的代码用正常的多行格式（参考 `src/core/`）。界面模块里还有不少压缩风格的旧代码，改到哪里顺手展开到哪里。
+6. 动画和逐字显示要尊重 `isReduced()`（`src/app/settings.js`）；CSS 里用 `html.reduce-motion` 选择器，不要直接写 `prefers-reduced-motion`。
+7. 需要随机数的核心逻辑接受可选的种子（见 `makeRng()`），测试里用固定种子。
+8. 新写或大改的代码用正常的多行格式（参考 `src/core/`）。界面模块里还有不少压缩风格的旧代码，改到哪里顺手展开到哪里。
 
 ## 文案
 
@@ -31,6 +32,8 @@
 
 - `echo-workshop-v3`：编辑器里正在编辑的剧情；`echo-workshop-v3-tab`：编辑器上次打开的标签页
 - `echo-game-v1`：游戏里的剧情副本（含玩家留下的残响和点赞）。剧情文件的 `id` 或 `revision` 变了就会被新版本替换
+- `echo-run-v1`：游戏的轮回进度（跨轮记忆 + 当前这一轮），格式见 `src/core/save.js`。剧情版本变了只保留跨轮记忆
+- `echo-settings-v1`：玩家设置（文字速度、动态效果）
 - `echo-liked-v1`：本机点过赞的残响 id
 
 改存储结构时优先在 `normalize()` 里做迁移，避免换键导致用户编辑丢失。

@@ -1,0 +1,70 @@
+/* 游戏菜单：标题画面、暂停、设置
+   标题的主角是"残响"两个字本身：它在夜里留下两道越来越淡、越来越模糊的回声。 */
+
+/* ---------- 标题画面 ---------- */
+.title-screen{position:fixed;inset:0;z-index:40;overflow:hidden;background:var(--night);isolation:isolate}
+.title-screen canvas{position:absolute;inset:0;width:100%;height:100%;display:block;animation:title-drift 60s ease-in-out infinite alternate;transform-origin:62% 40%}
+@keyframes title-drift{from{transform:scale(1.02)}to{transform:scale(1.1) translateX(-1.5%)}}
+.title-screen .fog{z-index:1}
+.title-shade{position:absolute;inset:0;z-index:2;pointer-events:none;
+  background:linear-gradient(90deg,rgb(8 10 16 / .9) 0%,rgb(8 10 16 / .55) 38%,transparent 70%),
+             radial-gradient(ellipse at 50% 40%,transparent 40%,rgb(0 0 0 / .65) 100%)}
+.title-inner{position:absolute;z-index:3;left:max(24px,8vw,env(safe-area-inset-left,0px));right:max(16px,env(safe-area-inset-right,0px));bottom:max(9vh,64px);display:grid;gap:10px;justify-items:start}
+
+.title-word{position:relative;margin:0 0 4px;font-family:var(--f-brush);font-weight:400;font-size:clamp(96px,17vw,210px);line-height:.95;letter-spacing:.04em;color:var(--parch);
+  text-shadow:0 0 28px rgb(240 199 126 / .28),0 4px 30px #000}
+.title-word span:first-child{position:relative;z-index:2;display:inline-block;animation:title-in 1.6s ease-out both}
+.title-word .ghost{position:absolute;left:0;top:0;z-index:1;color:var(--mist);pointer-events:none;text-shadow:none;white-space:nowrap}
+.title-word .g1{opacity:.3;filter:blur(1.5px);animation:echo-1 2.8s .6s cubic-bezier(.2,.7,.2,1) both}
+.title-word .g2{opacity:.13;filter:blur(4px);animation:echo-2 3.4s .9s cubic-bezier(.2,.7,.2,1) both}
+@keyframes title-in{from{opacity:0;filter:blur(8px)}to{opacity:1;filter:none}}
+@keyframes echo-1{from{opacity:0;transform:translateX(0)}to{opacity:.3;transform:translateX(.09em)}}
+@keyframes echo-2{from{opacity:0;transform:translateX(0)}to{opacity:.13;transform:translateX(.2em)}}
+
+.title-sub{margin:0;font-family:var(--f-serif);font-weight:600;font-size:clamp(17px,1.8vw,21px);letter-spacing:.3em;color:var(--gold-2)}
+.title-tag{margin:0 0 18px;font-family:var(--f-serif);font-size:15px;color:var(--mist);max-width:30em}
+.title-save{margin:6px 0 0;min-height:1.6em;font-family:var(--f-serif);font-size:14px;color:var(--dim);max-width:34em}
+.title-keys{position:absolute;z-index:3;right:max(20px,env(safe-area-inset-right,0px));bottom:max(20px,env(safe-area-inset-bottom,0px));margin:0;font-size:12px;color:var(--dim)}
+@media (hover:none){.title-keys{display:none}}
+
+/* ---------- 竖排菜单（标题、暂停、设置共用） ---------- */
+.menu-list{display:grid;gap:2px;justify-items:start}
+.mitem{position:relative;display:flex;align-items:baseline;gap:14px;border:0;background:none;cursor:pointer;
+  padding:7px 14px 7px 30px;font-family:var(--f-serif);font-size:clamp(19px,2vw,23px);font-weight:600;letter-spacing:.12em;color:var(--dim);transition:color .2s}
+.mitem .ms{font-family:var(--f-ui);font-size:12px;font-weight:400;letter-spacing:0;color:var(--dim)}
+/* 选中的一项：左边点亮一小簇烛火 */
+.mitem::before{content:"";position:absolute;left:8px;top:50%;width:7px;height:11px;margin-top:-6px;border-radius:50% 50% 45% 45%/60% 60% 40% 40%;
+  background:radial-gradient(circle at 50% 70%,#fff3cf 0,var(--gold-2) 35%,#d07a2a 80%);box-shadow:0 0 10px 2px rgb(240 170 80 / .55);opacity:0;transform:scale(.4);transition:opacity .2s,transform .2s}
+.mitem.on{color:var(--parch)}
+.mitem.on::before{opacity:1;transform:none}
+.mitem.danger.on{color:#ff9aa2}
+.mitem:focus-visible{outline:none}
+.mitem:focus-visible .ml{text-decoration:underline;text-underline-offset:6px;text-decoration-color:var(--gold)}
+.mitem:disabled{opacity:.35;cursor:not-allowed}
+
+/* ---------- 遮罩与卡片 ---------- */
+.overlay{position:fixed;inset:0;z-index:45;display:grid;place-items:center;padding:20px;background:rgb(5 7 12 / .72);backdrop-filter:blur(3px)}
+.overlay-card{width:min(440px,100%);display:grid;gap:16px;padding:24px 24px 18px}
+.overlay-card h3{margin:0;font-size:20px;letter-spacing:.3em}
+
+/* ---------- 设置 ---------- */
+.settings{display:grid;gap:14px}
+.seg{border:0;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.seg legend{width:100%;padding:0;margin-bottom:8px;font-size:13px;color:var(--dim)}
+.seg label{position:relative}
+.seg input{position:absolute;opacity:0;width:1px;height:1px}
+.seg span{display:block;padding:6px 14px;border:1px solid var(--seam-2);border-radius:999px;font-size:13px;cursor:pointer;color:var(--dim);background:var(--night)}
+.seg input:checked+span{border-color:var(--gold);color:var(--gold-2);background:var(--gold-wash)}
+.seg input:focus-visible+span{outline:2px solid var(--gold);outline-offset:2px}
+.preview{margin:-4px 0 0;min-height:3.4em;padding:10px 12px;border-left:2px solid var(--gold-deep);font-family:var(--f-serif);font-size:15px;line-height:1.7;background:rgb(13 16 24 / .6)}
+
+/* ---------- 游戏里的菜单按钮 ---------- */
+.hud-menu{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;border:1px solid rgb(143 163 184 / .35);background:rgb(10 13 20 / .6);color:var(--parch);cursor:pointer}
+.hud-menu:hover{border-color:var(--gold)}
+
+/* ---------- 减少动态效果 ---------- */
+html.reduce-motion .title-screen canvas,
+html.reduce-motion .title-word span{animation:none}
+html.reduce-motion .title-word .g1{transform:translateX(.09em)}
+html.reduce-motion .title-word .g2{transform:translateX(.2em)}
+html.reduce-motion .mitem,html.reduce-motion .mitem::before{transition:none}

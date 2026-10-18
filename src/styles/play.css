@@ -36,11 +36,10 @@
 .fly button.like.on{color:#ff8a93;border-color:#c9444f}
 .fly button.like.on svg{fill:currentColor}
 @keyframes fly{from{left:100%;transform:translateX(0)}to{left:0;transform:translateX(-100%)}}
-@media (prefers-reduced-motion:reduce){
-  .fly{animation:none;position:static;margin:4px 16px;width:max-content;max-width:calc(100% - 32px)}
-  .sky{display:flex;flex-direction:column;height:auto}
-  .fog,.candles .on .flame{animation:none}
-}
+/* 减少动态效果：由设置控制（"跟随系统"时等同于 prefers-reduced-motion），见 src/app/settings.js */
+html.reduce-motion .fly{animation:none;position:static;margin:4px 16px;width:max-content;max-width:calc(100% - 32px)}
+html.reduce-motion .sky{display:flex;flex-direction:column;height:auto}
+html.reduce-motion .fog,html.reduce-motion .candles .on .flame{animation:none}
 /* 死亡与结局的大字 */
 .verdict{position:absolute;z-index:5;inset:0;display:grid;place-items:center;pointer-events:none}
 .verdict div{font-family:var(--f-brush);font-size:clamp(64px,11vw,120px);line-height:1;letter-spacing:.25em;padding-left:.25em;animation:stamp .9s cubic-bezier(.2,.9,.2,1) both}
@@ -48,7 +47,7 @@
 .verdict .w{color:var(--gold-2);text-shadow:0 0 40px #f0c77eaa}
 .verdict .b{color:#d58a4a;text-shadow:0 0 30px #d58a4a77}
 @keyframes stamp{from{opacity:0;transform:scale(1.35);filter:blur(6px)}to{opacity:1;transform:none;filter:none}}
-@media (prefers-reduced-motion:reduce){.verdict div{animation:none}}
+html.reduce-motion .verdict div{animation:none}
 
 .dialog{padding:22px clamp(18px,4vw,36px) 26px;display:grid;gap:18px;border-top:1px solid var(--seam);background:linear-gradient(180deg,#141925,#0f131c)}
 .stext{font-family:var(--f-serif);font-size:18px;line-height:2;margin:0;max-width:38em;color:var(--parch);min-height:3.6em;cursor:pointer}

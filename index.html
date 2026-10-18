@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Sans+SC:wght@400;500;700&family=Noto+Serif+SC:wght@400;600;700;900&display=swap">
 <link rel="stylesheet" href="src/styles/base.css">
 <link rel="stylesheet" href="src/styles/play.css">
+<link rel="stylesheet" href="src/styles/menus.css">
 </head>
 <body class="game-page">
 <header class="top">
@@ -19,7 +20,7 @@
 </header>
 
 <!-- 入局 -->
-<section class="view" id="v-play">
+<section class="view" id="v-play" hidden>
   <div class="play">
     <div class="game">
       <div class="stage" id="stage">
@@ -39,6 +40,38 @@
     <aside class="side" id="pside"></aside>
   </div>
 </section>
+
+<!-- 标题画面 -->
+<section class="title-screen" id="title" hidden>
+  <canvas id="titleArt" aria-hidden="true"></canvas>
+  <div class="fog"></div><div class="fog f2"></div>
+  <div class="title-shade"></div>
+  <div class="title-inner">
+    <h1 class="title-word" aria-label="残响"><span>残响</span><span class="ghost g1" aria-hidden="true">残响</span><span class="ghost g2" aria-hidden="true">残响</span></h1>
+    <p class="title-sub" id="titleSub"></p>
+    <p class="title-tag">被困在午夜的雾镇里。每一次死去，都会留下一句话。</p>
+    <div class="menu-list" id="titleMenu" role="menu" aria-label="标题菜单"></div>
+    <p class="title-save" id="titleSave" aria-live="polite"></p>
+  </div>
+  <p class="title-keys"><kbd>↑</kbd><kbd>↓</kbd> 选择　<kbd>空格</kbd> 确认</p>
+</section>
+
+<!-- 暂停菜单 -->
+<div class="overlay" id="pause" hidden>
+  <div class="overlay-card slab" role="dialog" aria-label="暂停">
+    <h3>暂停</h3>
+    <div class="menu-list" id="pauseMenu" role="menu"></div>
+  </div>
+</div>
+
+<!-- 设置 -->
+<div class="overlay" id="settingsPanel" hidden>
+  <div class="overlay-card slab" role="dialog" aria-label="设置">
+    <h3>设置</h3>
+    <div class="settings" id="settingsBody"></div>
+    <div class="menu-list" id="settingsDone" role="menu"></div>
+  </div>
+</div>
 
 <script type="module" src="src/game-main.js"></script>
 </body>

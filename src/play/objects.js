@@ -1,10 +1,11 @@
 /* 场景物件分组、互动菜单、执行选项 */
-import {$,esc,reduced} from '../app/dom.js';
+import {$,esc} from '../app/dom.js';
+import {isReduced} from '../app/settings.js';
 import {S} from '../app/store.js';
 import {costLine,gainText,lockMsg} from '../app/text.js';
 import {N,applyOpt,canTake} from '../core/story.js';
 import {clamp} from '../core/util.js';
-import {enterNode,known,renderHud,sideHTML} from './run.js';
+import {enterNode,known,persistRun,renderHud,sideHTML} from './run.js';
 import {GM,LOOKS,OBJ_H,looksOf,rr} from './scene.js';
 
 /* ================= 物件分组：同一物件下的多个选项合并，互动时弹出菜单 ================= */
@@ -102,7 +103,7 @@ export function doOpt(ob,i){
   const o=S.G.nodes[S.P.node].options[i];
   if(o.goto===S.P.node){actInPlace(ob,o,i);return}
   GM.busy=true;$('#fader').classList.add('on');
-  setTimeout(()=>{chooseOpt(i);requestAnimationFrame(()=>{$('#fader').classList.remove('on');GM.busy=false})},reduced?0:340);
+  setTimeout(()=>{chooseOpt(i);requestAnimationFrame(()=>{$('#fader').classList.remove('on');GM.busy=false})},isReduced()?0:340);
 }
 export function setNudge(s){GM.nudge=s;const el=$('#nudge');if(el)el.textContent=s}
 /* 留在同一个场景的行动：不换背景、不黑屏、角色不动 */
@@ -110,7 +111,7 @@ export function actInPlace(ob,o,i){
   const n=S.G.nodes[S.P.node];S.P.money=applyOpt(o,S.P.items,S.P.money);if(o.gainClue)S.P.runClues.add(o.gainClue);if(o.once)S.P.used.add(S.P.node+':'+i);
   S.P.lastChoice={node:S.P.node,idx:i};S.P.t+=6+n.time;
   const cost=costLine(o),gain=gainText(o);
-  refreshObjs();renderHud(n);$('#pside').innerHTML=sideHTML();
+  refreshObjs();renderHud(n);$('#pside').innerHTML=sideHTML();persistRun();
   setNudge([cost,gain].filter(Boolean).join('，')||`你${o.text}，但什么也没发生。`);
   if(gain)GM.floats.push({x:ob.x,y:GM.ground-(OBJ_H[ob.kind]||60)-10,text:gain.split('，')[0],life:1.4,col:'#f0c77e'});
   if(cost)GM.floats.push({x:ob.x,y:GM.ground-(OBJ_H[ob.kind]||60)+12,text:cost.split('，')[0].replace('花费 ','-').replace('用掉 ','-'),life:1.4,col:'#e2686f'});
