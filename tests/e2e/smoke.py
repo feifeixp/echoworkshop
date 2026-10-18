@@ -62,6 +62,9 @@ def main():
             pg.keyboard.press('Enter'); pg.wait_for_timeout(500)
             check(pg.is_visible('#art') and not pg.is_visible('#title'), '按回车开始游戏')
             check('镇口' in pg.inner_text('#hud'), '从起点「镇口」开始')
+            check('1 / 3' in pg.inner_text('#more'), '镇口有 3 句对白，从第 1 句开始')
+            pg.keyboard.press('Space'); pg.wait_for_timeout(100); pg.keyboard.press('Space'); pg.wait_for_timeout(200)
+            check('2 / 3' in pg.inner_text('#more'), '按空格翻到下一句')
             check(walk_until_scene_changes(pg, '镇口'), '走到物件旁按空格进入了新场景')
             place = pg.inner_text('#hud').split('\n')[0]
             shot(pg, 'game.png')

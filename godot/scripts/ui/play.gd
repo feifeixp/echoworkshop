@@ -7,6 +7,7 @@ const UI := preload("res://scripts/ui/ui_kit.gd")
 const Art := preload("res://scripts/ui/art.gd")
 const Texts := preload("res://scripts/ui/texts.gd")
 const StageScript := preload("res://scripts/ui/stage.gd")
+const StoryLib := preload("res://scripts/core/story.gd")
 
 var C := UI.C
 var stage: Node2D
@@ -25,6 +26,11 @@ var objmenu: PanelContainer
 var objmenu_box: VBoxContainer
 var dialog: PanelContainer
 var story_text: RichTextLabel
+var speaker_tag: Label
+var more_mark: Label
+## 当前场景的对白：[{speaker, text}]，line_i 是正在显示的一句
+var lines: Array = []
+var line_i := 0
 var trusted_box: HFlowContainer
 var nudge: Label
 var hint: Label
@@ -198,14 +204,22 @@ func _build_dialog() -> void:
 	var vb := VBoxContainer.new()
 	vb.add_theme_constant_override("separation", 8)
 	dialog.add_child(vb)
+	var head := HBoxContainer.new()
+	vb.add_child(head)
+	speaker_tag = UI.label("", 19, C.gold2, true)
+	speaker_tag.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(speaker_tag)
+	more_mark = UI.label("", 13, C.dim)
+	head.add_child(more_mark)
 	story_text = RichTextLabel.new()
+	story_text.bbcode_enabled = true
 	story_text.fit_content = true
 	story_text.scroll_active = false
 	story_text.add_theme_font_size_override("normal_font_size", 21)
 	story_text.add_theme_constant_override("line_separation", 8)
 	story_text.custom_minimum_size = Vector2(0, 64)
 	story_text.mouse_filter = Control.MOUSE_FILTER_STOP
-	story_text.gui_input.connect(func(e): if e is InputEventMouseButton and e.pressed: _finish_typing())
+	story_text.gui_input.connect(func(e): if e is InputEventMouseButton and e.pressed: advance_dialog())
 	vb.add_child(story_text)
 	trusted_box = HFlowContainer.new()
 	vb.add_child(trusted_box)
@@ -240,7 +254,7 @@ func _build_touch() -> void:
 	act.add_theme_font_size_override("font_size", 22)
 	act.add_theme_stylebox_override("normal", UI.box(Color(0.04, 0.05, 0.08, 0.6), C.gold_deep, 38, 8))
 	act.set_meta("x", -1.0)
-	act.pressed.connect(interact)
+	act.pressed.connect(on_interact_pressed)
 	touch_layer.add_child(act)
 
 
@@ -270,8 +284,12 @@ func enter_scene(reset_pos: bool) -> void:
 	_close_menu()
 	refresh()
 	var n = G.nodes.get(P.node)
-	story_text.text = n.text if n != null else "这条路通向一个不存在的地方，你迷失在雾里。"
-	_start_typing()
+	lines = StoryLib.split_lines(n.text if n != null else "这条路通向一个不存在的地方，你迷失在雾里。")
+	line_i = 0
+	if P.end != null:
+		_show_all_lines()   # 一轮结束时操作都在结局面板上，对白一次显示完
+	else:
+		_show_line()
 	_build_echoes()
 	if P.end != null:
 		_show_end()
@@ -336,6 +354,71 @@ func _update_trusted() -> void:
 		var l := UI.label("你相信了：" + n.echoes[int(k)].text, 14, C.rune)
 		chip.add_child(l)
 		trusted_box.add_child(chip)
+
+
+# ---------- 对白：一句一句显示 ----------
+
+func _esc(t: String) -> String:
+	return t.replace("[", "[lb]")
+
+
+func _show_line() -> void:
+	if lines.is_empty():
+		speaker_tag.text = ""
+		story_text.text = ""
+		more_mark.text = ""
+		typing = -1.0
+		return
+	var ln: Dictionary = lines[line_i]
+	speaker_tag.text = ln.speaker  # 旁白时为空，但保留位置，让右边的"继续"提示不跳动
+	speaker_tag.visible = true
+	story_text.text = _esc(ln.text)
+	_update_more()
+	_start_typing()
+
+
+func _show_all_lines() -> void:
+	speaker_tag.visible = false
+	more_mark.text = ""
+	var parts := []
+	for ln in lines:
+		parts.append(("[color=#f0c77e]%s[/color]　" % _esc(ln.speaker) if ln.speaker != "" else "") + _esc(ln.text))
+	story_text.text = "\n".join(parts)
+	_finish_typing()
+
+
+func _update_more() -> void:
+	var left := lines.size() - 1 - line_i
+	if left > 0:
+		var key := "点击" if DisplayServer.is_touchscreen_available() else "空格"
+		more_mark.text = "▼ %s继续（%d / %d）" % [key, line_i + 1, lines.size()]
+	else:
+		more_mark.text = ("%d / %d" % [lines.size(), lines.size()]) if lines.size() > 1 else ""
+
+
+## 还有没读完的对白（正在逐字显示，或后面还有句子）
+func dialog_pending() -> bool:
+	return typing >= 0.0 or line_i < lines.size() - 1
+
+
+## 翻到下一句：正在逐字显示时先显示完整这一句。返回是否翻页了。
+func advance_dialog() -> bool:
+	if Game.P.get("end") != null:
+		return false
+	if typing >= 0.0:
+		_finish_typing()
+		return true
+	if line_i < lines.size() - 1:
+		line_i += 1
+		_show_line()
+		return true
+	return false
+
+
+## "互动"键：对白没读完先翻页，读完了才和物件互动。
+func on_interact_pressed() -> void:
+	if not advance_dialog():
+		interact()
 
 
 # ---------- 逐字显示 ----------
@@ -780,7 +863,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		toggle_journal()
 		accept_event()
 	elif event.is_action_pressed("interact") and menu_group < 0 and not journal_layer.visible:
-		interact()
+		on_interact_pressed()
 		accept_event()
 	elif menu_group >= 0 and event is InputEventKey and event.pressed and event.keycode >= KEY_1 and event.keycode <= KEY_9:
 		var buttons := objmenu_box.get_children().filter(func(c): return c is Button)

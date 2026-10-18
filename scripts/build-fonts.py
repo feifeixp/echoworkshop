@@ -26,13 +26,15 @@ def used_chars():
 
 
 def display_chars():
-    """标题字体只用于：标题、场景名、结局大字。"""
+    """标题字体只用于：标题、场景名、说话人名字、结局大字。"""
     s = set('残响通关死轮回迷失0123456789·')
     for p in glob.glob(os.path.join(ROOT, 'stories/*.json')):
         g = json.load(open(p, encoding='utf-8'))
         s |= set(g.get('name', ''))
         for n in g.get('nodes', {}).values():
             s |= set(n.get('title', ''))
+            for m in re.finditer(r'^\s*【([^】]{1,12})】', n.get('text', ''), re.M):
+                s |= set(m.group(1))
     return s
 
 

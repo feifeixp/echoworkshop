@@ -119,6 +119,26 @@ export function parseStory(raw) {
   return normalize(JSON.parse(JSON.stringify(raw)));
 }
 
+/**
+ * 把场景正文拆成一句一句（规则见 docs/MECHANICS.md 第 7 节）：
+ * 每一行是一句，空行忽略；以【名字】开头的是这个角色的台词，其余是旁白（speaker 为空）。
+ * 只有名字、没有台词的行忽略。返回 [{ speaker, text }]。
+ */
+export function splitLines(text) {
+  const out = [];
+  for (const raw of String(text || '').split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line) continue;
+    const m = line.match(/^【([^】]{1,12})】\s*(.*)$/);
+    if (m) {
+      if (m[2].trim()) out.push({ speaker: m[1].trim(), text: m[2].trim() });
+    } else {
+      out.push({ speaker: '', text: line });
+    }
+  }
+  return out;
+}
+
 /* ---------- 货币与可叠加道具 ---------- */
 
 /** 搜索和模拟里的上限，防止反复赚钱的循环让状态无限增长。 */

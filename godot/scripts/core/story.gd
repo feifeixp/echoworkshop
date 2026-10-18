@@ -156,6 +156,25 @@ static func load_file(path: String) -> Dictionary:
 	return parse(raw)
 
 
+## 把场景正文拆成一句一句（规则见 docs/MECHANICS.md 第 7 节，与网页版 splitLines 一致）：
+## 每一行是一句，空行忽略；以【名字】开头的是这个角色的台词，其余是旁白（speaker 为空）。
+static func split_lines(text: String) -> Array:
+	var out := []
+	var re := RegEx.create_from_string("^【([^】]{1,12})】\\s*(.*)$")
+	for raw in text.replace("\r\n", "\n").split("\n"):
+		var line: String = raw.strip_edges()
+		if line == "":
+			continue
+		var m := re.search(line)
+		if m:
+			var said := m.get_string(2).strip_edges()
+			if said != "":
+				out.append({"speaker": m.get_string(1).strip_edges(), "text": said})
+		else:
+			out.append({"speaker": "", "text": line})
+	return out
+
+
 # ---------- 货币与可叠加道具 ----------
 
 static func qty_of(inv: Dictionary, k: String) -> int:

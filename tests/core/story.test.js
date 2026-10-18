@@ -72,3 +72,10 @@ test('剧情 JSON 往返不丢信息', () => {
   const g = sample();
   assert.deepEqual(parseStory(JSON.parse(JSON.stringify(g))), g);
 });
+
+test('场景正文分句：与 Godot 版共用的用例', async () => {
+  const { splitLines } = await import('../../src/core/story.js');
+  const { readFileSync } = await import('node:fs');
+  const fx = JSON.parse(readFileSync(new URL('../fixtures/dialogue-lines.json', import.meta.url), 'utf8'));
+  for (const c of fx.cases) assert.deepEqual(splitLines(c.text), c.lines, JSON.stringify(c.text));
+});

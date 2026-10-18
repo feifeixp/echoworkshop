@@ -1,0 +1,13 @@
+{
+  "说明": "场景正文拆成一句一句的规则（docs/MECHANICS.md 第 7 节）。网页版 splitLines() 和 Godot 版 split_lines() 都要对每个用例给出相同结果。",
+  "cases": [
+    {"text": "", "lines": []},
+    {"text": "你在雾中醒来。", "lines": [{"speaker": "", "text": "你在雾中醒来。"}]},
+    {"text": "炉火很暗。\n【老板】要点什么？\n\n  【醉汉】  钟……钟会响两次。  ",
+     "lines": [{"speaker": "", "text": "炉火很暗。"}, {"speaker": "老板", "text": "要点什么？"}, {"speaker": "醉汉", "text": "钟……钟会响两次。"}]},
+    {"text": "她没有回头：“我叫艾格尼丝。”", "lines": [{"speaker": "", "text": "她没有回头：“我叫艾格尼丝。”"}]},
+    {"text": "【神父】\n【】空的名字不算\n墙上写着【艾格尼丝】",
+     "lines": [{"speaker": "", "text": "【】空的名字不算"}, {"speaker": "", "text": "墙上写着【艾格尼丝】"}]},
+    {"text": "第一行\r\n第二行", "lines": [{"speaker": "", "text": "第一行"}, {"speaker": "", "text": "第二行"}]}
+  ]
+}

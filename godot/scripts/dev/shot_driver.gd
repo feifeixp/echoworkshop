@@ -90,6 +90,15 @@ func _run() -> void:
 	await _use("去酒馆打听消息")
 	await _wait(1.6)
 	_check(Game.P.node == "tavern", "走到路标前互动，进入酒馆")
+	var play = main.play
+	_check(play.lines.size() == 3 and play.dialog_pending(), "酒馆有 3 句对白，还没读完")
+	for i in 6:
+		play.on_interact_pressed()
+		await _wait(0.15)
+	_check(play.line_i == 2 and not play.dialog_pending(), "按互动键一句句翻到最后一句")
+	_check(play.speaker_tag.visible and play.speaker_tag.text == "老板", "台词显示说话人「老板」")
+	await _wait(0.4)
+	await _shot("03a-tavern-dialogue")
 	await _use("老板")
 	_check(main.play.objmenu.visible, "和老板互动弹出菜单")
 	await _shot("03-tavern-menu")

@@ -17,6 +17,7 @@ func _init() -> void:
 	test_validate()
 	test_economy()
 	test_save_roundtrip()
+	test_split_lines(repo)
 	test_vectors(repo)
 	print("\n通过 %d，失败 %d" % [passed, failed])
 	quit(1 if failed > 0 else 0)
@@ -106,6 +107,13 @@ func test_save_roundtrip() -> void:
 	G.revision += 1
 	ok(not SaveCodec.restore_run(G, data).resumable, "剧情版本变了不能接着这一轮")
 	ok(SaveCodec.restore_run(G, {"v": 99}).is_empty(), "无法识别的存档")
+
+
+func test_split_lines(repo: String) -> void:
+	begin("场景正文分句（与网页版共用的用例）")
+	var fx = JSON.parse_string(FileAccess.get_file_as_string(repo.path_join("tests/fixtures/dialogue-lines.json")))
+	for c in fx.cases:
+		ok(deq(StoryLib.split_lines(c.text), c.lines), "%s → %s" % [JSON.stringify(c.text), StoryLib.split_lines(c.text)])
 
 
 # ---------- 一致性用例 ----------

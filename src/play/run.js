@@ -4,7 +4,7 @@ import {SETTINGS,TEXT_SPEEDS,isReduced} from '../app/settings.js';
 import {LIKED,RUNSAVE,S,emit,save,saveLiked} from '../app/store.js';
 import {serializeRun} from '../core/save.js';
 import {believeEcho,carveEcho,knows,newProgress,startRun} from '../core/run.js';
-import {newEchoId} from '../core/story.js';
+import {newEchoId,splitLines} from '../core/story.js';
 import {closeMenu,interact,menuChoose,menuMove,refreshObjs} from './objects.js';
 import {GM,buildScene,startGame} from './scene.js';
 
@@ -44,27 +44,59 @@ export function renderStage(n){
     const bel=S.P.believed[S.P.node]||new Set();const ech=(n.echoes||[]).map((e,i)=>({e,i})).filter(o=>!bel.has(o.i));
     sky.innerHTML=ech.map(({e,i},k)=>{const dur=17+(k%3)*4+(e.text.length%5);return `<div class="fly" style="top:${(k%3)*36}px;--dur:${dur}s;--del:${-((k*dur*.37)+dur*.15).toFixed(1)}s"><span>${esc(e.text)}</span><button class="like${LIKED.has(e.id)?' on':''}" data-like="${i}" aria-pressed="${LIKED.has(e.id)}" aria-label="点赞"><svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.7 4.5c2.1 0 3.6 1.1 4.3 2.4.7-1.3 2.2-2.4 4.3-2.4 3.7 0 5.8 3.9 4.3 7.3C19.5 16.4 12 21 12 21z"/></svg><b class="num">${e.likes||0}</b></button><button data-believe="${i}"${S.P.belief<=0?' disabled':''}>${S.P.belief>0?'相信':'信念耗尽'}</button></div>`}).join('')}
 }
-/** 逐字显示正文，速度取决于玩家设置；点击文字可以立即显示全部。 */
+/** 正在逐字显示时，调用它立即显示完整这一句；没在显示时为 null。 */
+export const TW={done:null};
+/** 逐字显示一句话，速度取决于玩家设置。 */
 export function typewrite(el,text){
-  clearInterval(twT);
+  clearInterval(twT);TW.done=null;
   const speed=TEXT_SPEEDS[SETTINGS.textSpeed]||TEXT_SPEEDS.normal;
   if(isReduced()||!Number.isFinite(speed.step)){el.textContent=text;return}
   let i=0;
   el.textContent='';
   const caret=document.createElement('span');
   caret.className='caret';caret.textContent='▍';
-  const done=()=>{clearInterval(twT);el.textContent=text};
-  el.onclick=done;
+  const done=()=>{clearInterval(twT);TW.done=null;el.textContent=text};
+  TW.done=done;
   twT=setInterval(()=>{
     i+=speed.step;
     if(i>=text.length){done();return}
     el.textContent=text.slice(0,i);el.appendChild(caret);
   },speed.ms);
 }
+/* ---------- 对白：一句一句显示（分句规则见 core/story.js 的 splitLines） ---------- */
+export const DLG={lines:[],i:0};
+const DIALOG_TEXT='<div class="dhead"><span class="speaker" id="speaker"></span><span class="more" id="more"></span></div><p class="stext" id="stext"></p>';
+
+/** 显示当前这一句。animate 为 false 时直接显示完整（例如界面重绘时）。 */
+export function showLine(animate=true){
+  const el=$('#stext');if(!el)return;
+  const ln=DLG.lines[DLG.i]||{speaker:'',text:''};
+  $('#speaker').textContent=ln.speaker;
+  const left=DLG.lines.length-1-DLG.i;
+  $('#more').textContent=left>0?`▼ ${S.mode==='game'?'空格':'空格或点击'}继续（${DLG.i+1} / ${DLG.lines.length}）`:(DLG.lines.length>1?`${DLG.lines.length} / ${DLG.lines.length}`:'');
+  el.onclick=()=>advanceDialog();
+  if(animate)typewrite(el,ln.text);else{clearInterval(twT);TW.done=null;el.textContent=ln.text}
+}
+/** 一轮结束时：对白一次显示完，说话人名字用金色。 */
+function showAllLines(){
+  const el=$('#stext');if(!el)return;
+  clearInterval(twT);TW.done=null;
+  el.innerHTML=DLG.lines.map(l=>(l.speaker?`<b class="spk">${esc(l.speaker)}</b>　`:'')+esc(l.text)).join('<br>');
+}
+/** 翻到下一句：正在逐字显示时先显示完整这一句。返回是否翻页了。 */
+export function advanceDialog(){
+  if(!S.P||S.P.end)return false;
+  if(TW.done){TW.done();return true}
+  if(DLG.i<DLG.lines.length-1){DLG.i++;showLine();return true}
+  return false;
+}
+/** "互动"键：对白没读完先翻页，读完了才和物件互动。 */
+export function interactKey(){if(!advanceDialog())interact()}
+
 export function dialogScene(n){
   const bel=S.P.believed[S.P.node]||new Set();const trusted=[...bel].map(i=>n.echoes[i]).filter(Boolean);
   const hidden=n.options.filter(o=>o.needClue&&!known(o.needClue)).length;
-  return `<p class="stext" id="stext"></p>
+  return `${DIALOG_TEXT}
   ${trusted.length?`<div class="trusted">${trusted.map(e=>`<span>你相信了：${esc(e.text)}</span>`).join('')}</div>`:''}
   ${!n.options.length?'<div class="ghost">这个场景里没有任何可以互动的东西，剧情在这里断了。去“剧情编织”补上。</div>':''}
   <p class="nudge" id="nudge" aria-live="polite">${esc(GM.nudge)}</p>
@@ -87,7 +119,7 @@ export function dialogEnd(){
       <div class="endbtns"><button class="btn gold" data-act="write">刻下残响，进入第 ${S.P.runs+1} 次轮回</button><button class="btn" data-act="next">什么也不留</button></div></div>`
       :`<div class="endbtns"><button class="btn gold" data-act="next">进入第 ${S.P.runs+1} 次轮回</button></div>`;
   }
-  return `<p class="stext" id="stext"></p>
+  return `${DIALOG_TEXT}
   ${S.P.newDeathClue?`<div class="shard">${shardIcon}<div>记忆碎片：<b>${esc(S.G.clues[S.P.newDeathClue])}</b><br><span class="hint">下一轮你会记得。</span></div></div>`:''}${truth}${tail}`;
 }
 export function sideHTML(){
@@ -105,7 +137,8 @@ export function renderPlay(newScene){
   renderStage(n);buildScene(newScene||!GM.bg);
   $('#dialog').innerHTML=S.P.end?dialogEnd():dialogScene(n);
   $('#pside').innerHTML=sideHTML();
-  const el=$('#stext');if(el)typewrite(el,n?n.text:'');
+  DLG.lines=splitLines(n?n.text:'这条路通向一个不存在的地方，你迷失在雾里。');DLG.i=0;
+  if(S.P.end)showAllLines();else showLine();
   startGame();
 }
 $('#v-play').addEventListener('click',e=>{
@@ -119,9 +152,9 @@ $('#v-play').addEventListener('click',e=>{
     const n=S.G.nodes[S.P.node];
     if(!believeEcho(S.G,S.P,+bl.dataset.believe).ok)return;
     persistRun();
-    renderStage(n);refreshObjs();$('#dialog').innerHTML=dialogScene(n);$('#stext').textContent=n.text;$('#pside').innerHTML=sideHTML();return}
+    renderStage(n);refreshObjs();$('#dialog').innerHTML=dialogScene(n);showLine(false);$('#pside').innerHTML=sideHTML();return}
   const mi=e.target.closest('[data-mi]');if(mi){menuChoose(+mi.dataset.mi);return}
-  if(e.target.closest('[data-pad="act"]')){interact();return}
+  if(e.target.closest('[data-pad="act"]')){interactKey();return}
   if(!a)return;
   if(a.dataset.act==='pause'){emit('pause-request');return}
   if(a.dataset.act==='next')newRun();
@@ -151,7 +184,7 @@ document.addEventListener('keydown',e=>{
   if(k==='Escape'){emit('pause-request');e.preventDefault();return}
   if(k==='ArrowLeft'||k==='a'||k==='A'){GM.keys.l=true;e.preventDefault()}
   else if(k==='ArrowRight'||k==='d'||k==='D'){GM.keys.r=true;e.preventDefault()}
-  else if((k===' '||k==='Spacebar'||k==='e'||k==='E')&&document.activeElement?.tagName!=='BUTTON'){e.preventDefault();if(!e.repeat)interact()}
+  else if((k===' '||k==='Spacebar'||k==='e'||k==='E')&&document.activeElement?.tagName!=='BUTTON'){e.preventDefault();if(!e.repeat)interactKey()}
 });
 document.addEventListener('keyup',e=>{const k=e.key;if(k==='ArrowLeft'||k==='a'||k==='A')GM.keys.l=false;if(k==='ArrowRight'||k==='d'||k==='D')GM.keys.r=false});
 addEventListener('blur',()=>{GM.keys.l=GM.keys.r=false});

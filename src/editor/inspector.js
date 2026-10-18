@@ -71,7 +71,8 @@ export function renderInspector(){
   <div class="addrow"><button class="btn small" data-act="addEcho">加残响</button></div></div>`;
   box.innerHTML=`<div class="ihead"><input class="ititle" data-f="title" value="${esc(n.title)}" aria-label="节点标题"><button class="iconbtn" data-act="close" aria-label="关闭编辑">×</button></div>
   <div class="types">${Object.entries(TYPES).map(([k,v])=>`<button class="tchip${k===n.type?' on':''}" data-type="${k}" aria-pressed="${k===n.type}">${tIcon(k)}${v}</button>`).join('')}</div>
-  <textarea data-f="text" placeholder="这里发生了什么？" aria-label="正文">${esc(n.text)}</textarea>
+  <textarea data-f="text" placeholder="这里发生了什么？每一行是一句，依次显示。&#10;以【名字】开头的是台词，例如：&#10;【老板】要点什么？" aria-label="正文">${esc(n.text)}</textarea>
+  <p class="hint">每一行是一句，游戏里依次显示；以【名字】开头的是这个角色的台词，例如「【老板】要点什么？」。</p>
   <div class="irow"><label>停留约<input class="mini num" type="number" min="5" step="5" data-f="time" value="${n.time}">秒</label>
     ${n.type==='death'?`<label>死前揭示<select data-f="deathClue">${selOf(S.G.clues,n.deathClue,'不揭示线索')}</select></label>`:''}
     ${n.type==='ending'?`<label><select data-f="ending"><option value="true"${n.ending==='true'?' selected':''}>真结局（通关）</option><option value="bad"${n.ending!=='true'?' selected':''}>坏结局（继续轮回）</option></select></label>`:''}</div>
