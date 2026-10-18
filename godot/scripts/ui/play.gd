@@ -12,6 +12,7 @@ const StageScript := preload("res://scripts/ui/stage.gd")
 var C := UI.C
 var stage: Node2D
 var fog: Array = []
+var hud_bar: HBoxContainer
 var hud_place: Label
 var hud_sub: Label
 var hud_money: Label
@@ -25,6 +26,7 @@ var prompt_key: Label
 var objmenu: PanelContainer
 var objmenu_box: VBoxContainer
 var dialog: PanelContainer
+var dialog_style: StyleBoxFlat
 var speaker: Label
 var story_text: RichTextLabel
 var trusted_box: HFlowContainer
@@ -34,6 +36,8 @@ var fader: ColorRect
 var end_layer: Control
 var journal_layer: Control
 var touch_layer: Control
+var touch_pad: Control       # 手机：按住屏幕朝手指那边走（没有方向键图标）
+var pad_x := -1.0            # 正按着的手指在屏幕上的 x，没按为 -1
 
 var groups: Array = []       # [{key, name, idx, kind, slot}]
 var gstates: Array = []      # 每个物件：{states, live, hidden, locked, gone, multi}
@@ -73,6 +77,10 @@ func _ready() -> void:
 	stage = StageScript.new()
 	add_child(stage)
 	stage.near_changed.connect(func(_i): _update_prompt())
+	touch_pad = Control.new()
+	touch_pad.mouse_filter = Control.MOUSE_FILTER_STOP if Game.touch() else Control.MOUSE_FILTER_IGNORE
+	touch_pad.gui_input.connect(_on_pad_input)
+	add_child(UI.full_rect(touch_pad))
 	_build_fog()
 	var vig := TextureRect.new()
 	vig.texture = UI.vignette()
@@ -116,7 +124,8 @@ func _build_fog() -> void:
 
 
 func _build_hud() -> void:
-	var bar := HBoxContainer.new()
+	hud_bar = HBoxContainer.new()
+	var bar := hud_bar
 	bar.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
 	bar.offset_left = 24; bar.offset_right = -24; bar.offset_top = 16
 	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -199,6 +208,7 @@ func _build_dialog() -> void:
 	var st := UI.box(Color(0.06, 0.07, 0.11, 0.94), C.seam, 0, 0)
 	st.border_width_left = 0; st.border_width_right = 0; st.border_width_bottom = 0
 	st.content_margin_left = 48; st.content_margin_right = 48; st.content_margin_top = 18; st.content_margin_bottom = 16
+	dialog_style = st
 	dialog.add_theme_stylebox_override("panel", st)
 	dialog.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
 	add_child(dialog)
@@ -229,40 +239,69 @@ func _build_touch() -> void:
 	touch_layer = Control.new()
 	touch_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(UI.full_rect(touch_layer))
-	if not DisplayServer.is_touchscreen_available():
+	if not Game.touch():
 		touch_layer.hide()
 		return
-	for spec in [["◀", -1.0, 24.0], ["▶", 1.0, 112.0]]:
-		var b := Button.new()
-		b.text = spec[0]
-		b.focus_mode = Control.FOCUS_NONE
-		b.custom_minimum_size = Vector2(76, 76)
-		b.add_theme_stylebox_override("normal", UI.box(Color(0.04, 0.05, 0.08, 0.55), Color(0.56, 0.64, 0.72, 0.35), 38, 8))
-		b.set_meta("x", spec[2])
-		var d: float = spec[1]
-		b.button_down.connect(func(): stage.touch_dir = d)
-		b.button_up.connect(func(): stage.touch_dir = 0.0)
-		touch_layer.add_child(b)
 	var act := Button.new()
 	act.text = "互动"
 	act.focus_mode = Control.FOCUS_NONE
-	act.custom_minimum_size = Vector2(120, 76)
-	act.add_theme_font_size_override("font_size", 22)
-	act.add_theme_stylebox_override("normal", UI.box(Color(0.04, 0.05, 0.08, 0.6), C.gold_deep, 38, 8))
+	act.custom_minimum_size = Vector2(112, 56)
+	act.add_theme_font_size_override("font_size", 20)
+	act.add_theme_stylebox_override("normal", UI.box(Color(0.04, 0.05, 0.08, 0.6), C.gold_deep, 28, 8))
 	act.set_meta("x", -1.0)
 	act.pressed.connect(interact)
 	touch_layer.add_child(act)
 
 
+# ---------- 触屏走动 ----------
+
+## 按住屏幕：角色朝手指那边走，走到手指下面就停；松开就停。台词没播完时点一下是推进台词。
+func _on_pad_input(e: InputEvent) -> void:
+	if e is InputEventMouseButton and e.button_index == MOUSE_BUTTON_LEFT:
+		if e.pressed:
+			if _advance():
+				return
+			pad_press(e.position.x)
+		else:
+			pad_release()
+	elif e is InputEventMouseMotion and pad_x >= 0.0:
+		pad_x = e.position.x
+
+
+func pad_press(x: float) -> void:
+	pad_x = x
+
+
+func pad_release() -> void:
+	pad_x = -1.0
+	stage.touch_dir = 0.0
+
+
+func _update_pad() -> void:
+	if pad_x < 0.0:
+		return
+	var off: float = pad_x - (stage.px - stage.cam)
+	stage.touch_dir = 0.0 if absf(off) < 14.0 else signf(off)
+
+
 func _layout() -> void:
 	var W := size.x
 	var H := size.y
-	dialog_h = clampf(H * 0.27, 160, 240)
+	var safe := Game.safe_insets(size)
+	dialog_h = clampf(H * 0.27, 160, 240) + safe.bottom
 	ground = H - dialog_h - 36
 	dialog.offset_top = -dialog_h
+	dialog_style.content_margin_left = 48 + safe.left
+	# 手机上「互动」按钮放在对话框右下角，正文给它让出位置，不挡场景
+	dialog_style.content_margin_right = 48 + safe.right + (130.0 if Game.touch() else 0.0)
+	dialog_style.content_margin_bottom = 16 + safe.bottom
+	hud_bar.offset_left = 24 + safe.left
+	hud_bar.offset_right = -24 - safe.right
+	hud_bar.offset_top = 16 + safe.top
 	for b in touch_layer.get_children():
 		var x: float = b.get_meta("x")
-		b.position = Vector2(W - b.custom_minimum_size.x - 24 if x < 0 else x, ground - b.custom_minimum_size.y - 16)
+		var bx: float = W - b.custom_minimum_size.x - 24 - safe.right if x < 0 else x + safe.left
+		b.position = Vector2(bx, H - b.custom_minimum_size.y - 18 - safe.bottom)
 
 
 # ---------- 进入场景 ----------
@@ -328,15 +367,15 @@ func refresh() -> void:
 
 
 func _update_hint(states := []) -> void:
-	var touch := DisplayServer.is_touchscreen_available()
+	var touch := Game.touch()
 	if in_dialogue():
-		var keys := "点对话框或「互动」继续" if touch else "空格或点击继续，按住快速跳过"
+		var keys := "点屏幕继续" if touch else "空格或点击继续，按住快速跳过"
 		hint.text = "▼ %s（%d / %d）" % [keys, line_i + 1, lines.size()]
 		return
 	if states.is_empty():
 		states = Run.option_states(Game.G, Game.P)
 	var hidden_n := states.filter(func(s): return s.hidden).size()
-	var keys := "◀ ▶ 移动，点「互动」" if touch else "← → 或 A D 移动，空格互动，Tab 查看记忆，Esc 菜单"
+	var keys := "按住屏幕，角色朝手指那边走；点「互动」" if touch else "← → 或 A D 移动，空格互动，Tab 查看记忆，Esc 菜单"
 	hint.text = keys + ("。雾里还有 %d 处你暂时看不懂的东西。" % hidden_n if hidden_n > 0 else "。")
 
 
@@ -464,7 +503,7 @@ func _update_prompt() -> void:
 	prompt_sub.text = "\n".join(sub)
 	prompt_sub.visible = not sub.is_empty()
 	prompt_key.get_parent().visible = can
-	prompt_key.text = "互动" if DisplayServer.is_touchscreen_available() else "空格"
+	prompt_key.text = "互动" if Game.touch() else "空格"
 	prompt.reset_size()
 	prompt.show()
 	_place_above(prompt, gi)
@@ -473,7 +512,8 @@ func _update_prompt() -> void:
 func _place_above(c: Control, gi: int) -> void:
 	var p: Vector2 = stage.object_screen_pos(gi)
 	var h: float = Art.OBJ_H.get(groups[gi].kind, 60)
-	var x := clampf(p.x - c.size.x / 2 + (sin(shake * 60) * 5 if shake > 0 else 0.0), 12, size.x - c.size.x - 12)
+	var safe := Game.safe_insets(size)
+	var x := clampf(p.x - c.size.x / 2 + (sin(shake * 60) * 5 if shake > 0 else 0.0), 12 + safe.left, size.x - c.size.x - 12 - safe.right)
 	c.position = Vector2(x, maxf(80, p.y - h - c.size.y - 34))
 
 
@@ -546,7 +586,13 @@ func _open_menu(gi: int) -> void:
 	var hid: int = gs.live.size() - gs.vis.size()
 	if hid > 0:
 		objmenu_box.add_child(UI.label("还有 %d 件事，你现在还想不到。" % hid, 14, C.dim))
-	objmenu_box.add_child(UI.label("↑↓ 选择　回车确认　Esc 离开", 12, C.dim))
+	if Game.touch():
+		var leave := UI.menu_item("离开")
+		leave.add_theme_font_size_override("font_size", 17)
+		leave.pressed.connect(_close_menu)
+		objmenu_box.add_child(leave)
+	else:
+		objmenu_box.add_child(UI.label("↑↓ 选择　回车确认　Esc 离开", 12, C.dim))
 	objmenu.reset_size()
 	objmenu.show()
 	await get_tree().process_frame
@@ -650,7 +696,7 @@ func _build_echoes() -> void:
 	for j in echo_cards.size():
 		var it: Dictionary = echo_cards[j]
 		if Game.reduce_motion():
-			it.x = 24.0
+			it.x = 24.0 + Game.safe_insets(size).left
 			it.y = 116.0 + j * 46.0
 		else:
 			it.x = W * (0.22 + it.lane * 0.17) + it.order * maxf(W * 0.62, 560.0)
@@ -841,6 +887,9 @@ func close_popup() -> bool:
 
 func _set_input_enabled() -> void:
 	stage.can_move = visible and not busy and menu_group < 0 and not journal_layer.visible and Game.P.get("end") == null and not in_dialogue()
+	touch_layer.visible = Game.touch() and Game.P.get("end") == null
+	if not stage.can_move:
+		pad_release()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -873,6 +922,7 @@ func _process(dt: float) -> void:
 	else:
 		hold_t = 0.0
 		hold_rep = 0.0
+	_update_pad()
 	if typing >= 0.0:
 		typing += Game.chars_per_second() * dt
 		story_text.visible_characters = int(typing)

@@ -79,7 +79,7 @@ func _ready() -> void:
 	keys.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	keys.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	keys.offset_right = -24; keys.offset_bottom = -20
-	if DisplayServer.is_touchscreen_available(): keys.hide()
+	if Game.touch(): keys.hide()
 	add_child(keys)
 	resized.connect(_layout)
 
