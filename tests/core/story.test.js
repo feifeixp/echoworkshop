@@ -1,8 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { O, normalize, canTake, applyOpt, isHonest } from '../../src/core/story.js';
-import { SAMPLE } from '../../src/data/fog-town.js';
-import { clone } from '../../src/core/util.js';
+import { O, normalize, canTake, applyOpt, isHonest, validateStory, parseStory, FORMAT_VERSION } from '../../src/core/story.js';
+import { sample, rawSample } from './fixtures.js';
 
 test('选项默认值完整', () => {
   const o = O('看看', 'x');
@@ -31,7 +30,7 @@ test('执行选项：扣钱、用掉道具、获得道具和钱', () => {
 });
 
 test('归一化：补全字段、残响点赞与 id', () => {
-  const g = normalize(clone(SAMPLE));
+  const g = sample();
   for (const n of Object.values(g.nodes)) {
     for (const e of n.echoes) { assert.ok(e.id); assert.ok(e.likes >= 0); }
     for (const o of n.options) assert.equal(typeof o.once, 'boolean');
@@ -40,8 +39,36 @@ test('归一化：补全字段、残响点赞与 id', () => {
 });
 
 test('玩家残响的真假由实际后果决定', () => {
-  const g = normalize(clone(SAMPLE));
+  const g = sample();
   const ram = g.nodes.gate.options.find(o => o.text === '用力撞门');
   assert.equal(isHonest(g, ram, 'avoid'), true);
   assert.equal(isHonest(g, ram, 'go'), false);
+});
+
+test('结构校验：能读取的剧情没有错误', () => {
+  assert.deepEqual(validateStory(rawSample()), []);
+});
+
+test('结构校验：给出具体的中文错误', () => {
+  assert.deepEqual(validateStory(null), ['剧情数据必须是一个 JSON 对象']);
+  const g = rawSample();
+  g.start = 'nowhere';
+  g.nodes.gate.options[0].goto = 42;
+  g.nodes.bell.type = 'boss';
+  const errs = validateStory(g);
+  assert.ok(errs.some(e => e.includes('起点「nowhere」')));
+  assert.ok(errs.some(e => e.includes('gate') && e.includes('goto')));
+  assert.ok(errs.some(e => e.includes('boss')));
+});
+
+test('结构校验：拒绝更新版本的格式', () => {
+  const g = rawSample();
+  g.formatVersion = FORMAT_VERSION + 1;
+  assert.ok(validateStory(g)[0].includes('更新游戏'));
+  assert.throws(() => parseStory(g), /更新游戏/);
+});
+
+test('剧情 JSON 往返不丢信息', () => {
+  const g = sample();
+  assert.deepEqual(parseStory(JSON.parse(JSON.stringify(g))), g);
 });

@@ -72,3 +72,12 @@ button{font:inherit;color:inherit}
 .modal .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .toast{font-size:12px;color:var(--jade)}
 
+
+/* 无法继续时的错误提示 */
+.fatal{max-width:640px;margin:48px auto}
+.fatal pre{white-space:pre-wrap;font-family:var(--f-ui);font-size:13px;color:var(--blood);margin:0 0 12px}
+label.btn{display:inline-block}
+a.btn{text-decoration:none;display:inline-block}
+
+/* 游戏页：没有标签栏，舞台居中 */
+body.game-page .play{max-width:1280px;margin:0 auto}

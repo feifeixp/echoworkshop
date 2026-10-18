@@ -56,7 +56,7 @@ export function renderSim(res,ctl){
   svg.setAttribute('viewBox',`0 0 ${g.W} ${g.H}`);svg.setAttribute('width',g.W*wz);svg.setAttribute('height',g.H*wz);svg.innerHTML=g.inner;
 }
 export function doSim(){
-  const cfg={players:+$('#sPl').value,maxRuns:+$('#sRn').value,liar:+$('#sLi').value/100,mode:$('#sMode').value,mix:$('#sMix').value};
+  const cfg={players:+$('#sPl').value,maxRuns:+$('#sRn').value,liar:+$('#sLi').value/100,mode:$('#sMode').value,mix:$('#sMix').value,seed:$('#sSeed').value.trim()};
   const btn=$('#runSim');btn.disabled=true;btn.textContent='推演中…';
   setTimeout(()=>{try{if(!S.G.nodes[S.G.start]){$('#simres').innerHTML='<p class="hint">起点不存在，无法推演。</p>';return}
     const res=runSim(S.G,cfg);const ctl=$('#sCmp').checked&&cfg.mode!=='off'?runSim(S.G,Object.assign({},cfg,{mode:'off'})):null;renderSim(res,ctl)}

@@ -2,10 +2,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { analyze } from '../../src/core/analysis.js';
 import { normalize } from '../../src/core/story.js';
-import { SAMPLE } from '../../src/data/fog-town.js';
-import { clone } from '../../src/core/util.js';
+import { sample } from './fixtures.js';
 
-const story = () => normalize(clone(SAMPLE));
+const story = sample;
 
 test('示例剧情没有错误，第一局理论上就能通关', () => {
   const a = analyze(story());

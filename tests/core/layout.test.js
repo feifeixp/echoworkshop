@@ -2,11 +2,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { computeLayout, NH } from '../../src/core/layout.js';
 import { normalize } from '../../src/core/story.js';
-import { SAMPLE } from '../../src/data/fog-town.js';
-import { clone } from '../../src/core/util.js';
+import { sample } from './fixtures.js';
 
 test('每个节点都有位置，同一列的节点不重叠', () => {
-  const g = normalize(clone(SAMPLE));
+  const g = sample();
   const { pos } = computeLayout(g);
   assert.equal(Object.keys(pos).length, Object.keys(g.nodes).length);
   const cols = {};
@@ -18,7 +17,7 @@ test('每个节点都有位置，同一列的节点不重叠', () => {
 });
 
 test('前向连线总是从左往右', () => {
-  const g = normalize(clone(SAMPLE));
+  const g = sample();
   const { pos } = computeLayout(g);
   for (const [id, n] of Object.entries(g.nodes))
     for (const o of n.options)
@@ -26,7 +25,7 @@ test('前向连线总是从左往右', () => {
 });
 
 test('分支会错开，不会全部排在同一行', () => {
-  const g = normalize(clone(SAMPLE));
+  const g = sample();
   const { pos } = computeLayout(g);
   assert.ok(new Set(Object.values(pos).map(p => p.y)).size >= 5);
 });

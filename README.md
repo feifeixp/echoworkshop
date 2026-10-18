@@ -4,47 +4,55 @@
 
 玩家被困在午夜循环的雾镇里，一次次死去，又一次次醒来。每次死亡都会留下记忆碎片，也可以给后来的人留一句"残响"。残响可能是真心的提示，也可能是谎言。玩家看得到别人点了多少赞，却看不到它是真是假。
 
-这个仓库目前包含三部分：
+仓库里有两个页面：
 
-| 页面 | 作用 |
+**游戏**（`index.html`）：玩家打开就玩。横版场景里左右移动，空格与物件互动，相信或点赞飞过的残响。没有任何编辑功能。
+
+**编辑器**（`editor.html`）：开发团队用。
+
+| 标签 | 作用 |
 |---|---|
 | 剧情编织 | 用节点地图编辑剧情：选项、道具锁、知识锁、货币、一次性互动、残响。实时检查死局和可解性。 |
-| 入局 | 以玩家身份游玩：横版场景里左右移动，空格与物件互动，相信或点赞飞过的残响。 |
-| 命运推演 | 让几百个 AI 玩家反复入局，统计通关率、平均局数、劝退点和残响的影响。 |
+| 入局 | 在编辑器里直接试玩当前剧情。 |
+| 命运推演 | 让几百个 AI 玩家反复入局，统计通关率、平均局数、劝退点和残响的影响。可填随机种子让结果可复现。 |
+
+剧情存放在 `stories/` 下的 JSON 文件里。编辑器改完后，用"导入 / 导出 → 下载 JSON 文件"导出，替换 `stories/` 里的同名文件，游戏就会用上新版本。
 
 ## 快速开始
 
 需要 Node.js 20 或更高版本。项目没有任何 npm 依赖，不需要 `npm install`。
 
 ```bash
-npm run dev        # 开发服务器 http://localhost:5173/
+npm run dev        # 开发服务器：游戏 http://localhost:5173/ ，编辑器 http://localhost:5173/editor.html
 npm test           # 核心逻辑单元测试
-npm run build      # 打包成单个文件 dist/index.html
+npm run build      # 打包成 dist/index.html（游戏）和 dist/editor.html（编辑器）
 npm run preview    # 预览打包结果
 npm run test:e2e   # 浏览器冒烟测试（需要 Python 3 和 Playwright）
 npm run check      # 以上全部
 ```
 
-`dist/index.html` 是一个独立的单文件网页，可以直接双击打开，也可以上传到任何静态托管。
+打包出的两个文件都是独立的单文件网页，剧情也内嵌在里面，可以直接双击打开，也可以上传到任何静态托管。
 
 ## 目录结构
 
 ```
-index.html              页面骨架（开发时直接加载 src/ 下的模块）
+index.html              游戏页面
+editor.html             编辑器页面
+stories/                剧情 JSON 文件（游戏和编辑器的数据来源）
 src/
+  game-main.js          游戏入口
+  editor-main.js        编辑器入口
   core/                 与界面无关的纯逻辑，可以在 Node 里测试
     story.js            剧情数据模型、归一化、货币与道具规则
     analysis.js         剧情检查：可达性、可解性、最快通关路径
     simulate.js         AI 玩家批量模拟
     layout.js           剧情地图自动布局
     util.js             通用小函数
-  data/fog-town.js      示例剧情「雾镇 · 第一夜」
-  app/                  全局状态、存储、文案、标签切换
+  app/                  全局状态、存储、剧情文件读取、文案、标签切换
   editor/               剧情编织页：地图、检查面板、节点编辑栏
   play/                 入局页：场景绘制、角色与物件、互动菜单、轮回状态
   sim/                  命运推演页
   styles/               样式，按页面拆分
-  main.js               入口
 scripts/                零依赖的开发服务器和打包脚本
 tests/core/             单元测试（node:test）
 tests/e2e/              浏览器冒烟测试（Playwright）

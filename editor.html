@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>残响工坊 · 编辑器</title>
+<meta name="description" content="Roguelike + AVG 剧情设计与游玩：编辑剧情框架、横版试玩、批量模拟通关局数与概率。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Sans+SC:wght@400;500;700&family=Noto+Serif+SC:wght@400;600;700;900&display=swap">
+<link rel="stylesheet" href="src/styles/base.css">
+<link rel="stylesheet" href="src/styles/editor.css">
+<link rel="stylesheet" href="src/styles/play.css">
+<link rel="stylesheet" href="src/styles/sim.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <svg width="30" height="34" viewBox="0 0 30 34" aria-hidden="true"><path d="M15 2 C9 2 6 7 6 13 L6 22 L3 26 L27 26 L24 22 L24 13 C24 7 21 2 15 2 Z" fill="none" stroke="#d9a653" stroke-width="1.6"/><circle cx="15" cy="29.5" r="2.6" fill="#f0c77e"/><path d="M1 12 Q-1 17 1 22 M29 12 Q31 17 29 22" stroke="#8fa3b8" stroke-width="1.2" fill="none" opacity=".7"/></svg>
+    <h1>残响工坊</h1><span class="proj" id="projName"></span>
+  </div>
+  <nav class="tabs" role="tablist">
+    <button role="tab" data-tab="design" aria-selected="true">剧情编织<small>编辑框架</small></button>
+    <button role="tab" data-tab="play" aria-selected="false">入局<small>以玩家视角游玩</small></button>
+    <button role="tab" data-tab="sim" aria-selected="false">命运推演<small>批量模拟</small></button>
+  </nav>
+  <div class="act">
+    <a class="btn" href="index.html" target="_blank" rel="noopener">打开游戏</a>
+    <button class="btn" id="btnIO">导入 / 导出</button>
+    <button class="btn" id="btnReset">恢复示例</button>
+  </div>
+</header>
+
+<!-- 剧情编织 -->
+<section class="view" id="v-design">
+  <div class="design" id="design">
+    <div class="map">
+      <div class="toolbar">
+        <button class="btn" id="addNode">新增节点</button>
+        <button class="btn" id="layout">整理布局</button>
+        <button class="btn" id="hlBtn" aria-pressed="false">最快通关路线</button>
+        <span class="spacer"></span>
+        <button class="status" id="chkBtn" aria-haspopup="true"></button>
+        <button class="btn" id="libBtn" aria-haspopup="true">道具与线索</button>
+      </div>
+      <div class="scroller" id="gWrap"><svg id="gsvg" class="g drag" xmlns="http://www.w3.org/2000/svg"></svg></div>
+      <div class="float lg"><span>点节点编辑，拖动可移动</span><span><i class="li"></i>道具锁</span><span><i class="lc"></i>知识锁</span><span><i class="ld"></i>通向死亡</span></div>
+      <div class="float zm"><button id="zOut" aria-label="缩小">−</button><span class="num" id="zVal">100%</span><button id="zIn" aria-label="放大">＋</button><button id="zFit" style="font-size:12px">适应</button></div>
+      <div class="pop slab lib" id="pop" hidden></div>
+    </div>
+    <aside class="slab insp" id="insp" hidden></aside>
+  </div>
+</section>
+
+<!-- 入局 -->
+<section class="view" id="v-play" hidden>
+  <div class="play">
+    <div class="game">
+      <div class="stage" id="stage">
+        <canvas id="art" aria-label="游戏场景：用方向键移动角色，空格与附近的东西互动"></canvas>
+        <div class="fog"></div><div class="fog f2"></div>
+        <div class="sky" id="sky" aria-label="残响"></div>
+        <div class="vignette"></div>
+        <div class="hud" id="hud"></div>
+        <div class="pad" id="pad"><button data-pad="l" aria-label="向左走">◀</button><button data-pad="r" aria-label="向右走">▶</button></div>
+        <button class="pad-act" data-pad="act" aria-label="互动">互动</button>
+        <div class="menu" id="menu" hidden role="menu"></div>
+        <div class="fader" id="fader"></div>
+        <div class="verdict" id="verdict" hidden></div>
+      </div>
+      <div class="dialog" id="dialog"></div>
+    </div>
+    <aside class="side" id="pside"></aside>
+  </div>
+</section>
+
+<!-- 命运推演 -->
+<section class="view" id="v-sim" hidden>
+  <p class="intro">让一批 AI 玩家反复入局，直到打出真结局或用完局数。它们会记住害死自己的选择、按性格决定是否相信残响，死后也会留下残响，其中一部分在说谎。</p>
+  <div class="slab">
+    <div class="simctl">
+      <label class="f">模拟玩家数 <output id="oPl" class="num">500</output><input type="range" id="sPl" min="50" max="2000" step="50" value="500"></label>
+      <label class="f">每人最多尝试局数 <output id="oRn" class="num">20</output><input type="range" id="sRn" min="3" max="40" step="1" value="20"></label>
+      <label class="f">说谎者比例 <output id="oLi" class="num">25%</output><input type="range" id="sLi" min="0" max="80" step="5" value="25"></label>
+      <label class="f">残响来源<select id="sMode"><option value="all" selected>预设 + 玩家生成</option><option value="preset">仅预设残响</option><option value="off">关闭残响</option></select></label>
+      <label class="f">玩家构成<select id="sMix"><option value="mix">四种性格混合</option><option value="trust">全部轻信型</option><option value="doubt">全部多疑型</option><option value="explore">全部探索型</option><option value="forget">全部健忘型</option></select></label>
+      <label class="f">随机种子（留空则每次不同）<input id="sSeed" placeholder="例如 42" autocomplete="off"></label>
+      <label class="check"><input type="checkbox" id="sCmp" checked> 同时跑无残响对照组</label>
+      <button class="btn gold" id="runSim">开始推演</button>
+    </div>
+  </div>
+  <div class="simres" id="simres"></div>
+</section>
+
+<div class="modal" id="modal" hidden>
+  <div class="slab">
+    <h3>导入 / 导出剧情数据</h3>
+    <p class="hint">下载 JSON 文件后，用它替换项目里 stories/ 下的同名文件，游戏就会用上这一版。也可以粘贴之前导出的 JSON，点击“导入”。</p>
+    <textarea id="ioText" spellcheck="false"></textarea>
+    <div class="row"><button class="btn" id="ioDownload">下载 JSON 文件</button><label class="btn" for="ioFile">从文件导入</label><input type="file" id="ioFile" accept=".json,application/json" hidden><button class="btn" id="ioCopy">复制</button><button class="btn gold" id="ioLoad">导入</button><button class="btn" id="ioClose">关闭</button><span class="toast" id="ioMsg"></span></div>
+  </div>
+</div>
+
+<script type="module" src="src/editor-main.js"></script>
+</body>
+</html>

@@ -1,10 +1,7 @@
 /* 一次轮回的状态、HUD、对话、键盘输入 */
 import {$,esc,fmtMin,reduced} from '../app/dom.js';
-import {LIKED,S,save,saveLiked} from '../app/store.js';
+import {LIKED,S,emit,save,saveLiked} from '../app/store.js';
 import {isHonest,newEchoId} from '../core/story.js';
-import {drawDesign} from '../editor/graph.js';
-import {renderInspector,renderInspectorSoft} from '../editor/inspector.js';
-import {renderChecks} from '../editor/panels.js';
 import {closeMenu,interact,menuChoose,menuMove,refreshObjs} from './objects.js';
 import {GM,buildScene,startGame} from './scene.js';
 
@@ -102,7 +99,7 @@ $('#v-play').addEventListener('click',e=>{
   if(lk){const ec=S.G.nodes[S.P.node].echoes[+lk.dataset.like];if(!ec)return;if(!ec.id)ec.id=newEchoId();
     if(LIKED.has(ec.id)){LIKED.delete(ec.id);ec.likes=Math.max(0,(ec.likes||0)-1)}else{LIKED.add(ec.id);ec.likes=(ec.likes||0)+1}
     saveLiked();save();lk.classList.toggle('on',LIKED.has(ec.id));lk.setAttribute('aria-pressed',LIKED.has(ec.id));lk.querySelector('b').textContent=ec.likes;
-    if(S.sel===S.P.node&&!$('#insp').hidden)renderInspectorSoft();return}
+    emit('echo-liked',S.P.node);return}
   const bl=e.target.closest('[data-believe]'),a=e.target.closest('[data-act]');
   if(bl&&S.P.belief>0){const i=+bl.dataset.believe;const n=S.G.nodes[S.P.node];const ec=n.echoes[i];const s=S.P.believed[S.P.node]=S.P.believed[S.P.node]||new Set();if(s.has(i))return;
     s.add(i);S.P.belief--;S.P.blog.push({text:ec.text,honest:ec.honest});if(ec.teach)S.P.runClues.add(ec.teach);
@@ -114,7 +111,7 @@ $('#v-play').addEventListener('click',e=>{
   if(a.dataset.act==='restart')playReset(true);
   if(a.dataset.act==='write'){const lc=S.G.nodes[S.P.lastChoice.node];const j=+$('#wOpt').value,kind=$('#wKind').value,hon=isHonest(S.G,lc.options[j],kind);
     const txt=$('#wText').value.trim()||(kind==='avoid'?`别「${lc.options[j].text}」`:`「${lc.options[j].text}」就对了`);
-    lc.echoes.push({text:txt,target:j,honest:hon,kind,teach:'',by:'play',likes:0,id:newEchoId()});save();renderChecks();drawDesign();if(S.sel===S.P.lastChoice.node)renderInspector();newRun()}
+    lc.echoes.push({text:txt,target:j,honest:hon,kind,teach:'',by:'play',likes:0,id:newEchoId()});save();emit('story-changed',S.P.lastChoice.node);newRun()}
 });
 (function padSetup(){
   const pad=$('#pad');const set=(e,v)=>{const b=e.target.closest('[data-pad]');if(!b)return;e.preventDefault();if(v)closeMenu();GM.keys[b.dataset.pad]=v};
