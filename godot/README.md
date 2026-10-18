@@ -9,7 +9,7 @@
 1. 安装 [Godot 4.5](https://godotengine.org/download)（标准版，不需要 .NET 版）。
 2. 用 Godot 打开这个 `godot/` 文件夹，按 F5 运行。
 
-操作：方向键或 A / D 移动，空格或 E 互动，Tab 查看记忆，Esc 菜单。手柄：十字键或左摇杆移动，A 互动，Y 记忆，Start 菜单。有触屏时画面上会出现方向键和互动按钮。
+操作：方向键或 A / D 移动，空格或 E 互动（有多句台词时用来推进，按住快速跳过），Tab 查看记忆，Esc 菜单。手柄：十字键或左摇杆移动，A 互动，Y 记忆，Start 菜单。有触屏时画面上会出现方向键和互动按钮。
 
 ## 剧情更新后
 
@@ -29,7 +29,13 @@ python3 scripts/build-fonts.py <NotoSerifCJK-Regular.ttc> <LXGWWenKai-Regular.tt
 
 ```bash
 npm run test:godot     # 无界面：单元测试 + 与网页版共用的一致性用例
-npm run shots:godot    # 自动试玩一遍并截图到 build/shots/（需要 xvfb）
+npm run shots:godot    # 自动试玩一遍并截图到 build/shots/（Linux，需要 xvfb）
+```
+
+在 macOS 上没有 xvfb，直接开窗口跑（窗口要保持在最前面：被挡住时 macOS 不再渲染，截图会一直等下去）：
+
+```bash
+/Applications/Godot.app/Contents/MacOS/Godot --path godot --always-on-top --resolution 1280x720 -- --shots=build/shots
 ```
 
 `test:godot` 会检查 `data/stories/` 里的剧情是否和 `stories/` 一致，忘了同步会报错。

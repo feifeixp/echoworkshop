@@ -190,3 +190,39 @@ static func is_honest(G: Dictionary, o: Dictionary, kind: String) -> bool:
 	var t = G.nodes.get(o.goto)
 	var bad: bool = t == null or t.type == "death" or (t.type == "ending" and t.ending != "true")
 	return bad if kind == "avoid" else not bad
+
+
+# ---------- 台词 ----------
+
+## 说话人名字里不能出现的字符：空白、标点、引号和括号（问号可以，用来写「？？？」）
+const NOT_IN_NAME := " \t　，。、；！…—·“”‘’「」『』（）()《》<>,.;!\"'：:"
+## 冒号前以这些字结尾的是旁白（「他低声说：」），不是说话人
+const NARRATION_END := "说道问答喊叫写着"
+const NAME_MAX := 8
+
+
+## 把场景正文拆成一句句台词：每个非空行一句，「名字：台词」的行带说话人。
+## 规则见 docs/STORY_FORMAT.md「台词」，与网页版共用 tests/vectors/dialogue/ 的用例。
+## 返回 [{who, text}]。
+static func dialogue_lines(text) -> Array:
+	var lines := []
+	for raw in str(text if text != null else "").split("\n"):
+		var line: String = raw.strip_edges()
+		if line != "":
+			lines.append(_split_speaker(line))
+	return lines
+
+
+static func _split_speaker(line: String) -> Dictionary:
+	var a := line.find("：")
+	var b := line.find(":")
+	var at := a if b < 0 or (a >= 0 and a < b) else b
+	if at < 1:
+		return {"who": "", "text": line}
+	var who := line.substr(0, at)
+	var rest := line.substr(at + 1).strip_edges()
+	var ok := rest != "" and who.length() <= NAME_MAX and not NARRATION_END.contains(who.right(1))
+	for ch in who:
+		if NOT_IN_NAME.contains(ch):
+			ok = false
+	return {"who": who, "text": rest} if ok else {"who": "", "text": line}

@@ -50,7 +50,7 @@ html.reduce-motion .fog,html.reduce-motion .candles .on .flame{animation:none}
 html.reduce-motion .verdict div{animation:none}
 
 .dialog{padding:22px clamp(18px,4vw,36px) 26px;display:grid;gap:18px;border-top:1px solid var(--seam);background:linear-gradient(180deg,#141925,#0f131c)}
-.stext{font-family:var(--f-serif);font-size:18px;line-height:2;margin:0;max-width:38em;color:var(--parch);min-height:3.6em;cursor:pointer}
+.stext{white-space:pre-line;font-family:var(--f-serif);font-size:18px;line-height:2;margin:0;max-width:38em;color:var(--parch);min-height:3.6em;cursor:pointer}
 .stext .caret{display:inline-block;width:.5em;color:var(--gold);animation:blink 1s steps(1) infinite}
 @keyframes blink{50%{opacity:0}}
 .trusted{display:flex;flex-wrap:wrap;gap:8px}

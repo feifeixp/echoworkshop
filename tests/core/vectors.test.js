@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
-import { parseStory } from '../../src/core/story.js';
+import { parseStory, dialogueLines } from '../../src/core/story.js';
 import { newProgress, startRun, chooseOption, believeEcho, carveEcho, optionStates } from '../../src/core/run.js';
 import { serializeRun, restoreRun } from '../../src/core/save.js';
 
@@ -62,3 +62,10 @@ for (const file of readdirSync(dir).filter(f => f.endsWith('.json'))) {
     });
   });
 }
+
+const dialogue = JSON.parse(readFileSync(new URL('dialogue/lines.json', dir), 'utf8'));
+test(`一致性用例 dialogue/lines.json：${dialogue.name}`, () => {
+  dialogue.cases.forEach((c, i) => {
+    assert.deepEqual(dialogueLines(c.text), c.lines, `第 ${i + 1} 条：${JSON.stringify(c.text)}`);
+  });
+});

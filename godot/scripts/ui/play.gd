@@ -3,6 +3,7 @@
 extends Control
 
 const Run := preload("res://scripts/core/run_engine.gd")
+const StoryLib := preload("res://scripts/core/story.gd")
 const UI := preload("res://scripts/ui/ui_kit.gd")
 const Art := preload("res://scripts/ui/art.gd")
 const Texts := preload("res://scripts/ui/texts.gd")
@@ -24,6 +25,7 @@ var prompt_key: Label
 var objmenu: PanelContainer
 var objmenu_box: VBoxContainer
 var dialog: PanelContainer
+var speaker: Label
 var story_text: RichTextLabel
 var trusted_box: HFlowContainer
 var nudge: Label
@@ -38,6 +40,11 @@ var gstates: Array = []      # 每个物件：{states, live, hidden, locked, gon
 var menu_group := -1
 var busy := false
 var typing := 0.0
+var lines: Array = []        # 当前场景的台词 [{who, text}]，见 StoryLib.dialogue_lines
+var line_i := 0
+var dialog_key := ""         # 哪一次进入场景；同一次进入（例如窗口缩放）不重播台词
+var hold_t := 0.0            # 按住互动键快速跳过台词
+var hold_rep := 0.0
 var shake := 0.0
 var dialog_h := 190.0
 var ground := 480.0
@@ -195,17 +202,20 @@ func _build_dialog() -> void:
 	dialog.add_theme_stylebox_override("panel", st)
 	dialog.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
 	add_child(dialog)
+	dialog.mouse_filter = Control.MOUSE_FILTER_STOP
+	dialog.gui_input.connect(func(e): if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT: _advance())
 	var vb := VBoxContainer.new()
-	vb.add_theme_constant_override("separation", 8)
+	vb.add_theme_constant_override("separation", 6)
 	dialog.add_child(vb)
+	speaker = UI.label("", 19, C.gold2, true)
+	vb.add_child(speaker)
 	story_text = RichTextLabel.new()
 	story_text.fit_content = true
 	story_text.scroll_active = false
 	story_text.add_theme_font_size_override("normal_font_size", 21)
 	story_text.add_theme_constant_override("line_separation", 8)
 	story_text.custom_minimum_size = Vector2(0, 64)
-	story_text.mouse_filter = Control.MOUSE_FILTER_STOP
-	story_text.gui_input.connect(func(e): if e is InputEventMouseButton and e.pressed: _finish_typing())
+	story_text.mouse_filter = Control.MOUSE_FILTER_PASS
 	vb.add_child(story_text)
 	trusted_box = HFlowContainer.new()
 	vb.add_child(trusted_box)
@@ -268,12 +278,18 @@ func enter_scene(reset_pos: bool) -> void:
 		groups[gi].slot = Run.object_slot(G, P.node, groups[gi], gi, groups.size())
 	stage.build(G, P.node, groups, size, ground, reset_pos)
 	_close_menu()
-	refresh()
 	var n = G.nodes.get(P.node)
-	story_text.text = n.text if n != null else "这条路通向一个不存在的地方，你迷失在雾里。"
-	_start_typing()
+	var replay := reset_pos or _scene_key() != dialog_key
+	if replay:
+		dialog_key = _scene_key()
+		lines = StoryLib.dialogue_lines(n.text) if n != null else [{"who": "", "text": "这条路通向一个不存在的地方，你迷失在雾里。"}]
+		if lines.is_empty():
+			lines = [{"who": "", "text": ""}]
+		line_i = 0
+	refresh()
+	_show_line(replay)
 	_build_echoes()
-	if P.end != null:
+	if P.end != null and not in_dialogue():
 		_show_end()
 	else:
 		end_layer.hide()
@@ -306,11 +322,22 @@ func refresh() -> void:
 	_update_hud()
 	_update_prompt()
 	_update_trusted()
-	var hidden_n := states.filter(func(s): return s.hidden).size()
-	var keys := "◀ ▶ 移动，点「互动」" if DisplayServer.is_touchscreen_available() else "← → 或 A D 移动，空格互动，Tab 查看记忆，Esc 菜单"
-	hint.text = keys + ("。雾里还有 %d 处你暂时看不懂的东西。" % hidden_n if hidden_n > 0 else "。")
+	_update_hint(states)
 	if menu_group >= 0:
 		_open_menu(menu_group)
+
+
+func _update_hint(states := []) -> void:
+	var touch := DisplayServer.is_touchscreen_available()
+	if in_dialogue():
+		var keys := "点对话框或「互动」继续" if touch else "空格或点击继续，按住快速跳过"
+		hint.text = "▼ %s（%d / %d）" % [keys, line_i + 1, lines.size()]
+		return
+	if states.is_empty():
+		states = Run.option_states(Game.G, Game.P)
+	var hidden_n := states.filter(func(s): return s.hidden).size()
+	var keys := "◀ ▶ 移动，点「互动」" if touch else "← → 或 A D 移动，空格互动，Tab 查看记忆，Esc 菜单"
+	hint.text = keys + ("。雾里还有 %d 处你暂时看不懂的东西。" % hidden_n if hidden_n > 0 else "。")
 
 
 func _update_hud() -> void:
@@ -338,6 +365,48 @@ func _update_trusted() -> void:
 		trusted_box.add_child(chip)
 
 
+# ---------- 台词 ----------
+
+func _scene_key() -> String:
+	return "%d/%s/%d" % [int(Game.P.runs), Game.P.node, Game.P.path.size()]
+
+
+## 还有没播的台词：这时不能走动、不能互动，互动键用来推进台词。
+func in_dialogue() -> bool:
+	return line_i < lines.size() - 1
+
+
+func _show_line(animate: bool) -> void:
+	var l: Dictionary = lines[line_i]
+	# 旁白也留着名字那一行的位置，正文不会随说话人上下跳
+	speaker.text = l.who if l.who != "" else " "
+	story_text.text = l.text
+	if animate:
+		_start_typing()
+	else:
+		_finish_typing()
+	_update_hint()
+	_update_prompt()
+	_set_input_enabled()
+
+
+## 推进台词：正在逐字显示就先显示完整，否则换下一句。没有可推进的返回 false。
+func _advance() -> bool:
+	if busy or not visible or end_layer.visible:
+		return false
+	if typing >= 0.0:
+		_finish_typing()
+		return true
+	if not in_dialogue():
+		return false
+	line_i += 1
+	nudge.text = ""
+	_show_line(true)
+	if Game.P.end != null and not in_dialogue():
+		_show_end()
+	return true
+
+
 # ---------- 逐字显示 ----------
 
 func _start_typing() -> void:
@@ -359,7 +428,7 @@ func _finish_typing() -> void:
 
 func _update_prompt() -> void:
 	var gi: int = stage.near
-	if gi < 0 or gi >= gstates.size() or menu_group >= 0 or Game.P.end != null:
+	if gi < 0 or gi >= gstates.size() or menu_group >= 0 or Game.P.end != null or in_dialogue():
 		prompt.hide()
 		return
 	var gs: Dictionary = gstates[gi]
@@ -409,9 +478,9 @@ func _place_above(c: Control, gi: int) -> void:
 
 
 func interact() -> void:
-	if busy or Game.P.end != null or not visible:
+	if busy or not visible or menu_group >= 0:
 		return
-	if menu_group >= 0:
+	if _advance() or Game.P.end != null:
 		return
 	var gi: int = stage.near
 	if gi < 0:
@@ -503,6 +572,7 @@ func _do_option(gi: int, i: int) -> void:
 		# 留在原地的行动：不换场景、不黑屏、角色不动
 		var r := Run.choose_option(G, P, i)
 		if not r.ok: return
+		dialog_key = _scene_key()
 		Game.save_run()
 		var cost := Texts.cost_line(G, o)
 		var gain := Texts.gain_text(G, o)
@@ -770,7 +840,7 @@ func close_popup() -> bool:
 
 
 func _set_input_enabled() -> void:
-	stage.can_move = visible and not busy and menu_group < 0 and not journal_layer.visible and Game.P.get("end") == null
+	stage.can_move = visible and not busy and menu_group < 0 and not journal_layer.visible and Game.P.get("end") == null and not in_dialogue()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -793,6 +863,16 @@ func _unhandled_input(event: InputEvent) -> void:
 func _process(dt: float) -> void:
 	if not visible:
 		return
+	if (in_dialogue() or typing >= 0.0) and menu_group < 0 and not journal_layer.visible and Input.is_action_pressed("interact"):
+		hold_t += dt
+		if hold_t > 0.4:
+			hold_rep -= dt
+			if hold_rep <= 0.0:
+				hold_rep = 0.07
+				_advance()
+	else:
+		hold_t = 0.0
+		hold_rep = 0.0
 	if typing >= 0.0:
 		typing += Game.chars_per_second() * dt
 		story_text.visible_characters = int(typing)

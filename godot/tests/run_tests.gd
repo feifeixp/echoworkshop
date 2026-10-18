@@ -18,6 +18,7 @@ func _init() -> void:
 	test_economy()
 	test_save_roundtrip()
 	test_vectors(repo)
+	test_dialogue(repo)
 	print("\n通过 %d，失败 %d" % [passed, failed])
 	quit(1 if failed > 0 else 0)
 
@@ -192,3 +193,15 @@ func check(G: Dictionary, P: Dictionary, exp: Dictionary, where: String) -> void
 			ok(false, "%s：未知的字段 %s" % [where, k])
 		else:
 			ok(deq(actual[k], exp[k]), "%s：%s 应为 %s，实际 %s" % [where, k, exp[k], actual[k]])
+
+
+func test_dialogue(repo: String) -> void:
+	var vec = JSON.parse_string(FileAccess.get_file_as_string(repo.path_join("tests/vectors/dialogue/lines.json")))
+	begin("一致性用例 dialogue/lines.json")
+	ok(vec != null, "找不到 tests/vectors/dialogue/lines.json")
+	if vec == null:
+		return
+	for i in vec.cases.size():
+		var c: Dictionary = vec.cases[i]
+		var got := StoryLib.dialogue_lines(c.text)
+		ok(deq(got, c.lines), "第 %d 条 %s：得到 %s" % [i + 1, JSON.stringify(c.text), JSON.stringify(got)])

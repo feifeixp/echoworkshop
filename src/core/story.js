@@ -119,6 +119,41 @@ export function parseStory(raw) {
   return normalize(JSON.parse(JSON.stringify(raw)));
 }
 
+/* ---------- 台词 ---------- */
+
+/** 说话人名字里不能出现的字符：空白、标点、引号和括号（问号可以，用来写「？？？」）。 */
+const NOT_IN_NAME = /[\s，。、；！…—·“”‘’「」『』（）()《》<>,.;!"'：:]/;
+/** 冒号前以这些字结尾的是旁白（「他低声说：」），不是说话人。 */
+const NARRATION_END = '说道问答喊叫写着';
+export const NAME_MAX = 8;
+
+/**
+ * 把场景正文拆成一句句台词：每个非空行一句，「名字：台词」的行带说话人。
+ * 规则见 docs/STORY_FORMAT.md「台词」，与 Godot 版共用 tests/vectors/dialogue/ 的用例。
+ * @returns {{who: string, text: string}[]}
+ */
+export function dialogueLines(text) {
+  const lines = [];
+  for (const raw of String(text || '').split('\n')) {
+    const line = raw.trim();
+    if (!line) continue;
+    lines.push(splitSpeaker(line));
+  }
+  return lines;
+}
+
+function splitSpeaker(line) {
+  const at = line.search(/[：:]/);
+  if (at < 1) return { who: '', text: line };
+  const who = line.slice(0, at);
+  const rest = line.slice(at + 1).trim();
+  const ok = rest !== ''
+    && [...who].length <= NAME_MAX
+    && !NOT_IN_NAME.test(who)
+    && !NARRATION_END.includes(who.slice(-1));
+  return ok ? { who, text: rest } : { who: '', text: line };
+}
+
 /* ---------- 货币与可叠加道具 ---------- */
 
 /** 搜索和模拟里的上限，防止反复赚钱的循环让状态无限增长。 */
