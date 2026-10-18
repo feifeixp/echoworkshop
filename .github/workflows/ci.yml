@@ -1,0 +1,35 @@
+# 每次推送都检查：网页版和 Godot 版都通过同一批一致性用例，打包能成功。
+name: 检查
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      GODOT_VERSION: 4.5.1
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: 网页版单元测试与一致性用例
+        run: npm test
+
+      - name: 打包网页版
+        run: npm run build
+
+      - name: 安装 Godot
+        run: |
+          curl -sSL -o godot.zip "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q godot.zip
+          sudo mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" /usr/local/bin/godot
+
+      - name: Godot 版测试与一致性用例
+        run: |
+          godot --headless --path godot --import || true
+          npm run test:godot

@@ -9,7 +9,17 @@
 - 冒烟测试用 Python Playwright（`python3 tests/e2e/smoke.py`），会自己启动开发服务器。
 - 改了界面，用 `python3 tests/e2e/smoke.py --shots <目录>` 生成截图，亲眼看一下。
 
-## 架构规则
+## 两个实现，一套规则
+
+游戏规则写在 `docs/MECHANICS.md`，有两份实现：网页版 `src/core/run.js`（剧情编辑器的试玩和推演用）和 Godot 版 `godot/scripts/core/run_engine.gd`（正式游戏）。改规则时：
+
+1. 先改 `docs/MECHANICS.md`；
+2. 在 `tests/vectors/` 里加或改一致性用例（格式见那里的 README）；
+3. 两边都改，`npm test` 和 `npm run test:godot` 都通过。
+
+剧情改了要 `npm run sync:godot`；剧情里出现新字要重新生成字体（见 `godot/README.md`）。Godot 部分的写法约定也在 `godot/README.md`。改了 Godot 界面，用 `npm run shots:godot` 截图看一眼。
+
+## 网页部分的架构规则
 
 0. **两个入口**（游戏专用的界面放在 `src/game/`，例如标题画面和暂停菜单）：`index.html` + `src/game-main.js` 是游戏，`editor.html` + `src/editor-main.js` 是编辑器。游戏的依赖树里不能出现 `src/editor/`、`src/sim/`（打包后用 `grep '// ---- src/editor' dist/index.html` 检查）。游戏部分需要通知编辑器时，用 `store.js` 的 `emit()` / `on()`，不要直接 import 编辑器模块。
 

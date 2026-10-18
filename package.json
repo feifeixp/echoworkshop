@@ -10,9 +10,10 @@
     "preview": "SERVE_DIR=dist node scripts/serve.mjs",
     "test": "node --test \"tests/core/**/*.test.js\"",
     "test:e2e": "python3 tests/e2e/smoke.py && python3 tests/e2e/smoke.py --dist",
-    "check": "npm run test && npm run build && npm run test:e2e",
+    "check": "npm run test && npm run test:godot && npm run build && npm run test:e2e",
     "sync:godot": "node scripts/sync-godot.mjs",
-    "test:godot": "godot --headless --path godot --script res://tests/run_tests.gd"
+    "test:godot": "godot --headless --path godot --script res://tests/run_tests.gd",
+    "shots:godot": "xvfb-run -a godot --path godot --rendering-driver opengl3 --resolution 1280x720 -- --shots=build/shots"
   },
   "engines": {
     "node": ">=20"
