@@ -42,7 +42,35 @@ npm run shots:godot    # 自动试玩一遍并截图到 build/shots/（Linux，�
 
 ## 导出
 
-`export_presets.cfg` 里预设了 Windows、macOS、Linux、Web 四个平台。导出前需要在 Godot 里下载导出模板（编辑器 → 管理导出模板）。手机版（Android / iOS）需要另外配置签名，见路线图。
+`export_presets.cfg` 里预设了 Windows、macOS、Linux、Web、iOS、Android 六个平台。导出前需要在 Godot 里下载导出模板（编辑器 → 管理导出模板）。包名都是 `com.neowow.echo`；图标是 `assets/icon.png`，由 `python3 scripts/build-icon.py` 生成。
+
+### iOS 真机
+
+签名用个人团队 `4445MCDJ66`（装到手机上 7 天后失效，重新装一次即可）。预设只导出 Xcode 工程，编译和安装用 Xcode 的命令行：
+
+```bash
+cd godot && /Applications/Godot.app/Contents/MacOS/Godot --headless --path . --export-debug iOS ../build/ios/残响.ipa
+cd ../build/ios && xcodebuild -project 残响.xcodeproj -scheme 残响 -configuration Debug -destination generic/platform=iOS -derivedDataPath dd -allowProvisioningUpdates DEVELOPMENT_TEAM=4445MCDJ66 CODE_SIGN_STYLE=Automatic build
+xcrun devicectl list devices                                   # 找到手机的 UDID
+xcrun devicectl device install app --device <UDID> dd/Build/Products/Debug-iphoneos/残响.app
+```
+
+手机要解锁、亮屏，否则安装和启动都会失败。第一次打开前在手机上：设置 → 通用 → VPN 与设备管理 → 信任开发者。
+
+### Android
+
+预设已经配好（只打 arm64，横屏全屏），还没在真机上导出过。需要 JDK 17（本机只有 11）、Android SDK 的 build-tools，以及一台打开 USB 调试的手机。
+
+### 手机界面
+
+- 手机上界面基准是 960×540（电脑 1280×720），等于整体放大 1.33 倍：`Game.PHONE_BASE`。
+- 走动没有方向键图标：按住屏幕，角色朝手指那边走，松开就停。「互动」按钮在对话框右下角，不挡场景。
+- 顶栏、对话框、按钮避开刘海和主屏指示条：`Game.safe_insets()`。
+- 在电脑上模拟手机：`-- --phone`（强制手机模式，并模拟 iPhone 横屏的安全区），例如自动试玩：
+
+```bash
+/Applications/Godot.app/Contents/MacOS/Godot --path godot --always-on-top --resolution 1266x585 -- --phone --shots=build/shots-phone
+```
 
 ## 目录
 

@@ -96,6 +96,18 @@ func _run() -> void:
 	await _wait(0.8)
 	Input.action_release("move_right")
 	_check(main.play.stage.px > 100, "按方向键角色会移动")
+	if Game.phone:
+		var x0: float = main.play.stage.px
+		main.play.pad_press(main.play.size.x * 0.9)
+		await _wait(0.6)
+		main.play.pad_release()
+		var x1: float = main.play.stage.px
+		_check(x1 > x0 + 40, "手机：按住屏幕右侧，角色往右走（%d → %d）" % [x0, x1])
+		main.play.pad_press(main.play.size.x * 0.05)
+		await _wait(0.4)
+		main.play.pad_release()
+		await _wait(0.2)
+		_check(main.play.stage.px < x1 and main.play.stage.touch_dir == 0.0, "手机：按住左侧往回走，松开就停")
 
 	await _use("去酒馆打听消息")
 	await _wait(1.6)

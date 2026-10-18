@@ -23,10 +23,22 @@ var P: Dictionary = {}
 var load_errors: Array = []
 var liked: Dictionary = {}
 var settings := {"textSpeed": "normal", "motion": "full", "fullscreen": false}
+## 手机：界面放大、触屏操作、避开刘海和主屏指示条。开发时用 -- --phone 在电脑上模拟。
+var phone := false
+var fake_safe_area := false
+
+## 手机上的界面基准尺寸（电脑是 project.godot 里的 1280×720），越小界面越大
+const PHONE_BASE := Vector2i(960, 540)
 
 
 func _ready() -> void:
 	_setup_input()
+	phone = OS.has_feature("mobile")
+	if "--phone" in OS.get_cmdline_user_args():
+		phone = true
+		fake_safe_area = true
+	if phone:
+		get_window().content_scale_size = PHONE_BASE
 	_load_settings()
 	liked = _read_json(LIKED_FILE, {})
 	if not (liked is Dictionary): liked = {}
@@ -112,6 +124,35 @@ func toggle_like(echo: Dictionary) -> void:
 		echo.likes = int(echo.likes) + 1
 	_write_json(LIKED_FILE, liked)
 	save_story()
+
+
+# ---------- 屏幕 ----------
+
+## 用触屏操作：显示触屏按钮，提示文字不提键盘。
+func touch() -> bool:
+	return phone or DisplayServer.is_touchscreen_available()
+
+
+## 屏幕四边不能放重要内容的宽度（刘海、灵动岛、圆角、主屏指示条），单位是界面坐标。
+## view 是界面的尺寸（Control.size）。
+func safe_insets(view: Vector2) -> Dictionary:
+	var none := {"left": 0.0, "right": 0.0, "top": 0.0, "bottom": 0.0}
+	if fake_safe_area:
+		# 模拟横屏的 iPhone 16 Pro：左右各 62pt、底部 21pt（共 874×402pt）
+		return {"left": view.x * 0.071, "right": view.x * 0.071, "top": 0.0, "bottom": view.y * 0.052}
+	if not OS.has_feature("mobile"):
+		return none
+	var win := Vector2(DisplayServer.window_get_size())
+	if win.x <= 0 or win.y <= 0:
+		return none
+	var safe := DisplayServer.get_display_safe_area()
+	var k := view / win
+	return {
+		"left": maxf(0, safe.position.x) * k.x,
+		"right": maxf(0, win.x - safe.end.x) * k.x,
+		"top": maxf(0, safe.position.y) * k.y,
+		"bottom": maxf(0, win.y - safe.end.y) * k.y,
+	}
 
 
 # ---------- 设置 ----------
