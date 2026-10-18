@@ -1,0 +1,33 @@
+; 残响 · Godot 版
+; 游戏规则见 ../docs/MECHANICS.md；剧情数据由网页编辑器导出，同步到 data/stories/（npm run sync:godot）
+
+config_version=5
+
+[application]
+
+config/name="残响"
+config/description="被困在午夜的雾镇里。每一次死去，都会留下一句话。"
+run/main_scene="res://scenes/main.tscn"
+config/features=PackedStringArray("4.5", "Mobile")
+
+[autoload]
+
+Game="*res://scripts/autoload/game.gd"
+
+[display]
+
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+window/handheld/orientation=4
+
+[input_devices]
+
+pointing/emulate_touch_from_mouse=false
+
+[rendering]
+
+renderer/rendering_method="mobile"
+textures/canvas_textures/default_texture_filter=1
+environment/defaults/default_clear_color=Color(0.051, 0.063, 0.094, 1)

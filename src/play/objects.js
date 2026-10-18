@@ -3,39 +3,38 @@ import {$,esc} from '../app/dom.js';
 import {isReduced} from '../app/settings.js';
 import {S} from '../app/store.js';
 import {costLine,gainText,lockMsg} from '../app/text.js';
-import {N,applyOpt,canTake} from '../core/story.js';
+import {chooseOption,echoStance,groupOptions,objectKind,objectSlot,optionStates} from '../core/run.js';
 import {clamp} from '../core/util.js';
-import {enterNode,known,persistRun,renderHud,sideHTML} from './run.js';
-import {GM,LOOKS,OBJ_H,looksOf,rr} from './scene.js';
+import {known,persistRun,renderHud,renderPlay,sideHTML} from './run.js';
+import {GM,OBJ_H,rr} from './scene.js';
 
 /* ================= 物件分组：同一物件下的多个选项合并，互动时弹出菜单 ================= */
-export function looksOfName(name,os){
-  if(/门/.test(name))return 'door';
-  if(/人|老板|醉汉|神父|修女|守夜|她|他|婆|翁|商|孩|夫/.test(name))return 'person';
-  if(/路|口|楼梯|小径|巷|阶/.test(name))return 'sign';
-  if(/书|桌|柜|箱|墙|井|蜡烛|钥匙|台|名字/.test(name))return 'item';
-  return looksOf(os[0]);
-}
+/** 把当前场景的选项分组成物件，并算出外观和位置（规则见 core/run.js）。 */
 export function buildObjs(){
-  const n=S.G.nodes[S.P.node];const ops=n?n.options:[];const groups=new Map();
-  ops.forEach((o,i)=>{const name=(o.obj||'').trim();const k=name||('#'+i);if(!groups.has(k))groups.set(k,{key:k,name,idx:[]});groups.get(k).idx.push(i)});
-  const arr=[...groups.values()],N=arr.length;
-  return arr.map((g,gi)=>{const os=g.idx.map(i=>ops[i]);
-    const posO=os.find(o=>o.pos!==''&&o.pos!=null&&!isNaN(+o.pos)),lookO=os.find(o=>o.look&&LOOKS[o.look]);
-    const kind=lookO?lookO.look:(g.name?looksOfName(g.name,os):looksOf(os[0]));
-    return {key:g.key,name:g.name,idx:g.idx,i:g.idx[0],o:os[0],kind,
-      x:posO?clamp(+posO.pos,3,97)/100*GM.WW:GM.WW*(.24+.68*(N<2?.5:gi/(N-1)))}});
+  const groups=groupOptions(S.G,S.P.node);
+  return groups.map((g,gi)=>({
+    key:g.key,name:g.name,idx:g.idx,i:g.idx[0],o:S.G.nodes[S.P.node].options[g.idx[0]],
+    kind:objectKind(S.G,S.P.node,g),
+    x:objectSlot(S.G,S.P.node,g,gi,groups.length)*GM.WW,
+  }));
 }
-export function refreshObjs(){const n=S.G.nodes[S.P.node];if(!n)return;
-  GM.objs.forEach(ob=>{ob.states=ob.idx.map(i=>{const o=n.options[i];return {i,o,hidden:!!(o.needClue&&!known(o.needClue)),locked:!canTake(o,S.P.items,S.P.money)}});
-    ob.states.forEach(s=>s.used=!!(s.o.once&&S.P.used&&S.P.used.has(S.P.node+':'+s.i)));
-    ob.live=ob.states.filter(s=>!s.used);ob.gone=!ob.live.length;
-    const vis=ob.live.filter(s=>!s.hidden);ob.hidden=!vis.length;ob.locked=vis.length>0&&vis.every(s=>s.locked);ob.multi=ob.live.length>1});
+/** 按引擎给出的选项状态刷新物件：全部用过的物件消失，全部看不懂的物件是一团雾。 */
+export function refreshObjs(){
+  if(!S.G.nodes[S.P.node])return;
+  const states=optionStates(S.G,S.P);
+  GM.objs.forEach(ob=>{
+    ob.states=ob.idx.map(i=>states[i]).filter(Boolean);
+    ob.live=ob.states.filter(s=>!s.used);
+    ob.gone=!ob.live.length;
+    const vis=ob.live.filter(s=>!s.hidden);
+    ob.hidden=!vis.length;
+    ob.locked=vis.length>0&&vis.every(s=>s.locked);
+    ob.multi=ob.live.length>1;
+  });
   if(GM.near>=0&&GM.objs[GM.near]&&GM.objs[GM.near].gone)GM.near=-1;
   if(GM.menu)renderMenu();
 }
-export function echoOn(i){const n=S.G.nodes[S.P.node];const bel=S.P.believed[S.P.node];if(!bel||!n)return null;let m=null;
-  bel.forEach(j=>{const e=n.echoes[j];if(e&&e.target===i)m=m==='go'?'go':(e.kind==='avoid'?'avoid':'go')});return m}
+export const echoOn=i=>echoStance(S.G,S.P,i);
 export function believedMarks(idx){let m=null;(Array.isArray(idx)?idx:[idx]).forEach(i=>{const v=echoOn(i);if(v)m=m==='go'?'go':v});return m}
 export function drawPrompt(x,ob,cam){
   const lines=[];let main,col='#e8e0cf',showKey=true,red=false;
@@ -108,13 +107,19 @@ export function doOpt(ob,i){
 export function setNudge(s){GM.nudge=s;const el=$('#nudge');if(el)el.textContent=s}
 /* 留在同一个场景的行动：不换背景、不黑屏、角色不动 */
 export function actInPlace(ob,o,i){
-  const n=S.G.nodes[S.P.node];S.P.money=applyOpt(o,S.P.items,S.P.money);if(o.gainClue)S.P.runClues.add(o.gainClue);if(o.once)S.P.used.add(S.P.node+':'+i);
-  S.P.lastChoice={node:S.P.node,idx:i};S.P.t+=6+n.time;
+  if(!chooseOption(S.G,S.P,i).ok)return;
+  const n=S.G.nodes[S.P.node];
   const cost=costLine(o),gain=gainText(o);
   refreshObjs();renderHud(n);$('#pside').innerHTML=sideHTML();persistRun();
   setNudge([cost,gain].filter(Boolean).join('，')||`你${o.text}，但什么也没发生。`);
   if(gain)GM.floats.push({x:ob.x,y:GM.ground-(OBJ_H[ob.kind]||60)-10,text:gain.split('，')[0],life:1.4,col:'#f0c77e'});
   if(cost)GM.floats.push({x:ob.x,y:GM.ground-(OBJ_H[ob.kind]||60)+12,text:cost.split('，')[0].replace('花费 ','-').replace('用掉 ','-'),life:1.4,col:'#e2686f'});
 }
-export function chooseOpt(i){const n=S.G.nodes[S.P.node],o=n.options[i];if(o.once)S.P.used.add(S.P.node+':'+i);const before=S.P.money;S.P.money=applyOpt(o,S.P.items,S.P.money);if(o.gainClue)S.P.runClues.add(o.gainClue);S.P.gainNote=gainText(o);
-  S.P.lastChoice={node:S.P.node,idx:i};S.P.t+=6;enterNode(o.goto)}
+/** 前往别的场景：执行选项后保存并换到新场景。 */
+export function chooseOpt(i){
+  const o=S.G.nodes[S.P.node].options[i];
+  if(!chooseOption(S.G,S.P,i).ok)return;
+  S.P.gainNote=gainText(o);
+  persistRun();
+  renderPlay(true);
+}

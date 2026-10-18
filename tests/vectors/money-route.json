@@ -1,0 +1,25 @@
+{
+  "name": "金钱线：在酒馆打工、买蜡烛，喷泉的硬币只能摸一次，凑够钱贿赂守夜人",
+  "story": "stories/fog-town.json",
+  "steps": [
+    {"start": true},
+    {"choose": "去酒馆打听消息"},
+    {"expect": {"node": "tavern", "money": 2, "t": 96}},
+    {"expect": {"locked": ["买两支蜡烛"]}},
+    {"choose": "买两支蜡烛", "fail": "locked"},
+    {"choose": "帮忙擦杯子，赚点钱"},
+    {"expect": {"node": "tavern", "money": 5, "t": 152}},
+    {"choose": "帮忙擦杯子，赚点钱"},
+    {"choose": "买两支蜡烛"},
+    {"expect": {"node": "tavern", "money": 5, "items": {"candle": 2}}},
+    {"choose": "讨一支蜡烛，然后离开"},
+    {"expect": {"node": "square", "items": {"candle": 3}}},
+    {"choose": "在喷泉底摸硬币"},
+    {"expect": {"node": "square", "money": 6, "visible": ["去教堂", "去钟楼"]}},
+    {"choose": "在喷泉底摸硬币", "fail": "used"},
+    {"choose": "去钟楼"},
+    {"expect": {"node": "gate", "locked": ["用铜钥匙开门"]}},
+    {"choose": "塞给守夜人 5 枚铜币"},
+    {"expect": {"node": "stairs", "money": 1}}
+  ]
+}

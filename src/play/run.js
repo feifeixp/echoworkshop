@@ -3,7 +3,8 @@ import {$,esc,fmtMin} from '../app/dom.js';
 import {SETTINGS,TEXT_SPEEDS,isReduced} from '../app/settings.js';
 import {LIKED,RUNSAVE,S,emit,save,saveLiked} from '../app/store.js';
 import {serializeRun} from '../core/save.js';
-import {isHonest,newEchoId} from '../core/story.js';
+import {believeEcho,carveEcho,knows,newProgress,startRun} from '../core/run.js';
+import {newEchoId} from '../core/story.js';
 import {closeMenu,interact,menuChoose,menuMove,refreshObjs} from './objects.js';
 import {GM,buildScene,startGame} from './scene.js';
 
@@ -16,25 +17,17 @@ export function persistRun(){
 }
 export function clearRunSave(){if(RUNSAVE.key)try{localStorage.removeItem(RUNSAVE.key)}catch(e){}}
 export function playReset(full,startAt){
-  if(full||!S.P)S.P={know:new Set(),runs:0,total:0,history:[],startAt:startAt||S.G.start};
-  if(startAt)S.P.startAt=startAt;newRun();
+  if(full||!S.P)S.P=newProgress(S.G,startAt||S.G.start);
+  if(startAt)S.P.startAt=startAt;
+  newRun();
 }
+/** 开始新的一轮（规则见 core/run.js），然后保存并刷新画面。 */
 export function newRun(){
-  S.P.runs++;Object.assign(S.P,{used:new Set(),items:new Map(),money:S.G.startMoney,runClues:new Set(),belief:2,believed:{},blog:[],t:0,path:[],end:null,lastChoice:null});
-  enterNode(S.G.nodes[S.P.startAt]?S.P.startAt:S.G.start);
-}
-export const known=c=>S.P.know.has(c)||S.P.runClues.has(c);
-export function enterNode(id){
-  const n=S.G.nodes[id];S.P.node=id;if(!n){S.P.end={lost:true};renderPlay(true);return}
-  S.P.t+=n.time;S.P.path.push(id);
-  if(n.type==='death'||n.type==='ending'){
-    if(n.type==='death'&&n.deathClue){S.P.newDeathClue=!known(n.deathClue)?n.deathClue:'';S.P.runClues.add(n.deathClue)}else S.P.newDeathClue='';
-    S.P.runClues.forEach(c=>S.P.know.add(c));S.P.total+=S.P.t;S.P.end={type:n.type,true:n.type==='ending'&&n.ending==='true'};
-    S.P.history.push({run:S.P.runs,title:n.title,kind:n.type==='death'?'死亡':(n.ending==='true'?'真结局':'坏结局'),t:S.P.t});
-  }
+  startRun(S.G,S.P);
   persistRun();
   renderPlay(true);
 }
+export const known=c=>knows(S.P,c);
 export const coinSvg='<svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8.5" fill="#b8863a" stroke="#f0c77e" stroke-width="1.4"/><rect x="7.5" y="7.5" width="5" height="5" fill="#3a2c1c"/></svg>';
 export const candle=on=>`<svg class="${on?'on':'off'}" width="16" height="30" viewBox="0 0 16 30" aria-hidden="true"><path class="flame" d="M8,1 C11,6 11,9 8,11 C5,9 5,6 8,1 Z" fill="#f0c77e" style="filter:drop-shadow(0 0 4px #f0a040)"/><rect x="5" y="12" width="6" height="16" rx="1" fill="${on?'#e8e0cf':'#4a5160'}"/><rect x="3" y="27" width="10" height="2.5" rx="1" fill="#6e5326"/></svg>`;
 export function renderHud(n){
@@ -122,8 +115,10 @@ $('#v-play').addEventListener('click',e=>{
     saveLiked();save();lk.classList.toggle('on',LIKED.has(ec.id));lk.setAttribute('aria-pressed',LIKED.has(ec.id));lk.querySelector('b').textContent=ec.likes;
     emit('echo-liked',S.P.node);return}
   const bl=e.target.closest('[data-believe]'),a=e.target.closest('[data-act]');
-  if(bl&&S.P.belief>0){const i=+bl.dataset.believe;const n=S.G.nodes[S.P.node];const ec=n.echoes[i];const s=S.P.believed[S.P.node]=S.P.believed[S.P.node]||new Set();if(s.has(i))return;
-    s.add(i);S.P.belief--;S.P.blog.push({text:ec.text,honest:ec.honest});if(ec.teach)S.P.runClues.add(ec.teach);persistRun();
+  if(bl){
+    const n=S.G.nodes[S.P.node];
+    if(!believeEcho(S.G,S.P,+bl.dataset.believe).ok)return;
+    persistRun();
     renderStage(n);refreshObjs();$('#dialog').innerHTML=dialogScene(n);$('#stext').textContent=n.text;$('#pside').innerHTML=sideHTML();return}
   const mi=e.target.closest('[data-mi]');if(mi){menuChoose(+mi.dataset.mi);return}
   if(e.target.closest('[data-pad="act"]')){interact();return}
@@ -131,9 +126,11 @@ $('#v-play').addEventListener('click',e=>{
   if(a.dataset.act==='pause'){emit('pause-request');return}
   if(a.dataset.act==='next')newRun();
   if(a.dataset.act==='restart')playReset(true);
-  if(a.dataset.act==='write'){const lc=S.G.nodes[S.P.lastChoice.node];const j=+$('#wOpt').value,kind=$('#wKind').value,hon=isHonest(S.G,lc.options[j],kind);
-    const txt=$('#wText').value.trim()||(kind==='avoid'?`别「${lc.options[j].text}」`:`「${lc.options[j].text}」就对了`);
-    lc.echoes.push({text:txt,target:j,honest:hon,kind,teach:'',by:'play',likes:0,id:newEchoId()});save();emit('story-changed',S.P.lastChoice.node);newRun()}
+  if(a.dataset.act==='write'){
+    const node=S.P.lastChoice.node;
+    carveEcho(S.G,S.P,{target:+$('#wOpt').value,kind:$('#wKind').value,text:$('#wText').value});
+    save();emit('story-changed',node);newRun();
+  }
 });
 (function padSetup(){
   const pad=$('#pad');const set=(e,v)=>{const b=e.target.closest('[data-pad]');if(!b)return;e.preventDefault();if(v)closeMenu();GM.keys[b.dataset.pad]=v};

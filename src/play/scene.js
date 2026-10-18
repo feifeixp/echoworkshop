@@ -5,17 +5,7 @@ import {clamp} from '../core/util.js';
 import {isInside,paintScene} from './art.js';
 import {believedMarks,buildObjs,drawPrompt,refreshObjs,renderMenu} from './objects.js';
 
-export const LOOKS={door:'门',person:'人物',item:'物品',sign:'路标 / 去往别处',orb:'光点'};
 export const OBJ_H={door:96,person:74,item:44,sign:76,orb:80,ghost:64};
-export function looksOf(o){
-  if(o.look&&LOOKS[o.look])return o.look;const t=o.text||'';
-  if(/门|开锁|撞/.test(t))return 'door';
-  if(/蜡烛|钥匙|书|点燃|拿|要一|钟绳|喝一杯/.test(t))return 'item';
-  if(/神父|醉汉|老板|修女|她|叫出|求/.test(t))return 'person';
-  if(/去|前往|绕|离开|走|上去|冲|等|前进|深处|奔/.test(t))return 'sign';
-  if(/说|听|“|”|问/.test(t))return 'person';
-  return 'orb';
-}
 export const GM={menu:null,floats:[],raf:0,keys:{l:false,r:false},px:60,face:1,last:0,walk:0,objs:[],near:-1,bg:null,bgW:0,W:0,H:0,WW:0,ground:0,busy:false,shake:0,dpr:1,nudge:''};
 export function buildScene(resetPos){
   const st=$('#stage');const r=st.getBoundingClientRect();if(!r.width)return;

@@ -1,0 +1,35 @@
+{
+  "name": "知识线：死在神父面前得知他不是敲钟人，下一轮说出来，拿蜡烛走地窖，记下修女的名字，打出真结局",
+  "story": "stories/fog-town.json",
+  "steps": [
+    {"start": true},
+    {"expect": {"node": "arrive", "runs": 1, "money": 2, "belief": 2, "end": null, "t": 40,
+                "visible": ["去酒馆打听消息", "去教堂", "直奔钟楼"], "locked": []}},
+    {"choose": "去教堂"},
+    {"choose": "直接走向神父"},
+    {"expect": {"node": "priest", "visible": ["“敲钟的人就是你！”", "什么也不说，离开"]}},
+    {"choose": "“我知道敲钟的不是你。”", "fail": "hidden"},
+    {"choose": "“敲钟的人就是你！”"},
+    {"expect": {"node": "d_priest", "end": "death", "newDeathClue": "notpriest", "know": ["notpriest"],
+                "t": 178, "total": 178, "history": ["死亡"]}},
+    {"choose": "随便什么", "fail": "ended"},
+
+    {"next": true},
+    {"expect": {"node": "arrive", "runs": 2, "money": 2, "items": {}, "runClues": [], "know": ["notpriest"], "t": 40}},
+    {"choose": "去教堂"},
+    {"choose": "直接走向神父"},
+    {"expect": {"visible": ["“敲钟的人就是你！”", "“我知道敲钟的不是你。”", "什么也不说，离开"]}},
+    {"choose": "“我知道敲钟的不是你。”"},
+    {"choose": "前往钟楼"},
+    {"expect": {"node": "gate", "items": {"candle": 2}, "locked": ["用铜钥匙开门", "塞给守夜人 5 枚铜币"]}},
+    {"choose": "绕到钟楼后面"},
+    {"choose": "点燃一支蜡烛"},
+    {"expect": {"node": "lit", "items": {"candle": 1}}},
+    {"choose": "记下名字，沿楼梯上去"},
+    {"expect": {"node": "stairs", "runClues": ["name"]}},
+    {"choose": "等第二声钟响再上去"},
+    {"expect": {"node": "bell", "visible": ["叫出她的名字", "夺下钟绳", "求她停下"]}},
+    {"choose": "叫出她的名字"},
+    {"expect": {"node": "e_true", "end": "true", "know": ["name", "notpriest"], "history": ["死亡", "真结局"]}}
+  ]
+}

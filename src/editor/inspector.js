@@ -8,7 +8,7 @@ import {ICON,drawDesign,fitZoom} from './graph.js';
 import {lastA,openX,renderChecks} from './panels.js';
 import {autoLayout} from './routes.js';
 import {playReset} from '../play/run.js';
-import {LOOKS,looksOf} from '../play/scene.js';
+import {LOOKS,looksOfText} from '../core/run.js';
 
 /* ================= 节点编辑抽屉 ================= */
 export const selOf=(map,val,empty='无')=>`<option value="">${empty}</option>`+Object.entries(map).map(([k,v])=>`<option value="${esc(k)}"${k===val?' selected':''}>${esc(v)}</option>`).join('');
@@ -51,7 +51,7 @@ export function renderInspector(){
       <label class="f">获得线索<select data-o="${i}" data-of="gainClue">${selOf(S.G.clues,o.gainClue)}</select></label>
       <label class="f full">所属物件（同名的选项会合并成一个物件，玩家互动时弹出菜单）<input data-o="${i}" data-of="obj" list="objs-dl" value="${esc(o.obj||'')}" placeholder="留空则单独成为一个物件"></label>
       <label class="chkl full"><input type="checkbox" data-o="${i}" data-of="once"${o.once?' checked':''}>只能触发一次（每轮），用过后这件事会从场景里消失</label>
-      <label class="f">在场景中显示为<select data-o="${i}" data-of="look"><option value="">自动判断（${LOOKS[looksOf(Object.assign({},o,{look:''}))]}）</option>${Object.entries(LOOKS).map(([k,v])=>`<option value="${k}"${o.look===k?' selected':''}>${v}</option>`).join('')}</select></label>
+      <label class="f">在场景中显示为<select data-o="${i}" data-of="look"><option value="">自动判断（${LOOKS[looksOfText(o.text)]}）</option>${Object.entries(LOOKS).map(([k,v])=>`<option value="${k}"${o.look===k?' selected':''}>${v}</option>`).join('')}</select></label>
       <label class="f">场景位置 ${o.pos===''||o.pos==null?'（自动）':o.pos+'%'}<input type="range" min="3" max="97" data-o="${i}" data-of="pos" value="${o.pos===''||o.pos==null?50:o.pos}"></label>
       <label class="f full">软提示：知道这条线索的玩家更会选它<select data-o="${i}" data-of="hintClue">${selOf(S.G.clues,o.hintClue)}</select></label>
       <button class="linkbtn" data-act="delOpt" data-i="${i}">删除这个选项</button></div>`:s?`<div class="sum">${s}</div>`:''}`}).join('')}

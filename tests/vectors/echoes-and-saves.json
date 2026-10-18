@@ -1,0 +1,26 @@
+{
+  "name": "残响与存档：相信残响花信念、得知线索；刻下的残响按后果判真假；存档读档后接着玩",
+  "story": "stories/fog-town.json",
+  "steps": [
+    {"start": true},
+    {"choose": "直奔钟楼"},
+    {"expect": {"node": "gate", "belief": 2}},
+    {"believe": 0},
+    {"expect": {"belief": 1, "runClues": ["notpriest"], "know": []}},
+    {"believe": 0, "fail": "already"},
+    {"believe": 3},
+    {"expect": {"belief": 0}},
+    {"believe": 1, "fail": "no-belief"},
+    {"saveload": true},
+    {"expect": {"node": "gate", "belief": 0, "runClues": ["notpriest"], "money": 2, "runs": 1}},
+    {"choose": "用力撞门"},
+    {"expect": {"end": "death", "know": ["notpriest"]}},
+    {"carve": "用力撞门", "kind": "avoid", "honest": true},
+    {"carve": "用力撞门", "kind": "go", "honest": false},
+    {"carve": "绕到钟楼后面", "kind": "go", "honest": true},
+    {"saveload": true},
+    {"expect": {"end": "death", "runs": 1}},
+    {"next": true},
+    {"expect": {"runs": 2, "belief": 2, "know": ["notpriest"], "node": "arrive"}}
+  ]
+}
