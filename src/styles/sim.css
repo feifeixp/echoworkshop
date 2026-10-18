@@ -1,0 +1,36 @@
+/* ---------- 命运推演 ---------- */
+.simctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px 18px;align-items:end}
+.simctl .f output{color:var(--gold-2);font-size:13px;font-weight:700}
+.check{display:flex;gap:8px;align-items:center;font-size:13px}
+.simres{display:grid;gap:18px;margin-top:18px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px}
+.kpi .v{font-family:var(--f-serif);font-size:34px;font-weight:900;line-height:1.15;color:var(--gold-2);text-shadow:0 0 18px rgb(217 166 83 / .3)}
+.kpi .v small{font-size:14px;font-weight:600;color:var(--parch);text-shadow:none}
+.kpi .k{font-size:12px;color:var(--dim)}
+.kpi .c{font-size:12px;color:var(--dim);margin-top:4px}
+.kpi .c b{color:var(--parch);font-weight:600}
+.two{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:18px}
+@media (max-width:860px){.two{grid-template-columns:1fr}}
+.chart svg{width:100%;height:auto;display:block}
+.chart .grid line{stroke:var(--seam)}
+.chart text{font:11px var(--f-ui);fill:var(--dim)}
+.chart .lbl{font-weight:700;fill:var(--parch)}
+.bars{display:grid;gap:9px}
+.bar{display:grid;grid-template-columns:minmax(0,7em) minmax(0,1fr) 3.5em;gap:10px;align-items:center;font-size:13px;font-family:var(--f-serif)}
+.bar .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar .tr{height:12px;background:var(--night);border:1px solid var(--seam);overflow:hidden}
+.bar .fl{display:block;height:100%;background:linear-gradient(90deg,#7a2a33,var(--blood))}
+.bar .fl.b{background:linear-gradient(90deg,#7a5020,#d58a4a)} .bar .fl.l{background:var(--seam-2)}
+.bar .vl{font-size:12px;text-align:right;color:var(--dim);font-family:var(--f-ui)}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{text-align:left;padding:8px;border-bottom:1px solid var(--seam)}
+th{font-size:12px;color:var(--dim);font-weight:500}
+td{font-family:var(--f-serif)}
+td.n,th.n{text-align:right}
+.note{font-family:var(--f-serif);font-size:15px;line-height:1.95;margin:0}
+.note b{color:var(--gold-2)}
+.leg2{display:flex;gap:16px;font-size:12px;color:var(--dim);margin-bottom:6px}
+.leg2 i{display:inline-block;width:16px;border-top:2.5px solid var(--gold);vertical-align:middle;margin-right:5px}
+.leg2 i.c{border-top:2.5px dashed var(--mist)}
+

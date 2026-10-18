@@ -1,0 +1,16 @@
+{
+  "name": "echo-workshop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "残响工坊：Roguelike + AVG 剧情设计工具与游戏原型",
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/serve.mjs",
+    "build": "node scripts/build.mjs",
+    "preview": "SERVE_DIR=dist node scripts/serve.mjs",
+    "test": "node --test \"tests/core/**/*.test.js\"",
+    "test:e2e": "python3 tests/e2e/smoke.py && python3 tests/e2e/smoke.py --dist",
+    "check": "npm run test && npm run build && npm run test:e2e"
+  },
+  "engines": { "node": ">=20" }
+}

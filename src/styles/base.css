@@ -1,0 +1,74 @@
+/* 页面重置：artifact 外壳之外运行时需要 */
+html,body{margin:0}
+img{max-width:100%}
+[hidden]{display:none!important}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+
+
+/* 布局：一个夜雾中的游戏世界。入局页是主角：插画舞台 + 飞过的残响弹幕 + 对白与抉择；编织页是星图式剧情地图；推演页是命运账簿 */
+:root{
+  --night:#0D1018; --stone:#151A25; --stone-2:#1C2230; --seam:#2B3345; --seam-2:#3A4459;
+  --parch:#E8E0CF; --dim:#9298A6; --mist:#8FA3B8;
+  --gold:#D9A653; --gold-2:#F0C77E; --gold-deep:#6E5326; --gold-wash:#2C2416;
+  --blood:#C9444F; --blood-wash:#341318;
+  --jade:#63B79F; --jade-wash:#122C27;
+  --rune:#8EAEEA; --rune-wash:#1A2340;
+  --f-brush:"Ma Shan Zheng","STKaiti","KaiTi",serif;
+  --f-serif:"Noto Serif SC","Songti SC","STSong",serif;
+  --f-ui:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{background:var(--night)}
+body{background:var(--night);color:var(--parch);font-family:var(--f-ui);font-size:14px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 48px;
+  background-image:radial-gradient(1200px 500px at 50% -120px,#1d2638 0%,transparent 70%),radial-gradient(800px 400px at 100% 100%,#181325 0%,transparent 70%);background-attachment:fixed}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+::selection{background:var(--gold-deep);color:var(--parch)}
+.num{font-variant-numeric:tabular-nums lining-nums}
+
+/* ---------- 顶栏 ---------- */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;display:flex;flex-wrap:wrap;align-items:center;gap:10px 28px;padding-block:12px;
+  background:linear-gradient(var(--night) 70%,transparent);}
+.brand{display:flex;align-items:center;gap:12px}
+.brand svg{flex:none}
+.brand h1{font-family:var(--f-brush);font-weight:400;font-size:30px;line-height:1;margin:0;color:var(--gold-2);text-shadow:0 0 18px rgb(217 166 83 / .45)}
+.brand .proj{font-family:var(--f-serif);font-size:13px;color:var(--dim)}
+.tabs{display:flex;gap:4px}
+.tabs button{border:0;background:none;cursor:pointer;padding:8px 14px 10px;font-family:var(--f-serif);font-size:16px;font-weight:600;color:var(--dim);position:relative;letter-spacing:.08em}
+.tabs button small{display:block;font-family:var(--f-ui);font-size:11px;font-weight:400;letter-spacing:0;opacity:.75}
+.tabs button::after{content:"";position:absolute;left:18%;right:18%;bottom:2px;height:2px;border-radius:2px;background:var(--gold);box-shadow:0 0 10px var(--gold);opacity:0;transform:scaleX(.3);transition:.25s}
+.tabs button[aria-selected="true"]{color:var(--parch)}
+.tabs button[aria-selected="true"]::after{opacity:1;transform:none}
+.tabs button:hover{color:var(--parch)}
+.top .act{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+
+.btn{font-size:13px;padding:7px 14px;border-radius:4px;border:1px solid var(--seam-2);background:var(--stone-2);color:var(--parch);cursor:pointer;white-space:nowrap;transition:border-color .15s,background .15s}
+.btn:hover{border-color:var(--gold-deep);background:#232a3a}
+.btn.gold{background:linear-gradient(#e4b664,#b8863a);color:#1b1408;border-color:#f0c77e;font-weight:700;box-shadow:0 0 0 1px #00000060,0 4px 18px rgb(217 166 83 / .25)}
+.btn.gold:hover{background:linear-gradient(#f0c77e,#c99446)}
+.btn.small{font-size:12px;padding:3px 9px}
+.btn.danger{color:var(--blood)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+
+.view{padding-top:10px}
+.intro{color:var(--dim);font-size:13px;margin:0 0 16px;max-width:76ch}
+
+/* 石板面板：只在四角压一道金线，而不是统一的圆角卡片 */
+.slab{position:relative;background:linear-gradient(180deg,var(--stone-2),var(--stone));border:1px solid var(--seam);border-radius:3px;padding:18px;min-width:0}
+.slab::before,.slab::after{content:"";position:absolute;width:14px;height:14px;border:1.5px solid var(--gold-deep);pointer-events:none}
+.slab::before{top:-1px;left:-1px;border-right:0;border-bottom:0}
+.slab::after{bottom:-1px;right:-1px;border-left:0;border-top:0}
+.slab h3{font-family:var(--f-serif);font-size:15px;font-weight:700;margin:0 0 12px;color:var(--gold-2);letter-spacing:.06em}
+.hint{font-size:12px;color:var(--dim);margin:0}
+.empty{font-size:12px;color:var(--dim)}
+
+
+/* 导入导出弹窗 */
+.modal{position:fixed;inset:0;background:rgb(0 0 0 / .65);display:grid;place-items:center;z-index:50;padding:20px}
+.modal .slab{width:min(680px,100%);display:grid;gap:10px}
+.modal textarea{min-height:300px;font-family:ui-monospace,Menlo,monospace;font-size:12px}
+.modal .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.toast{font-size:12px;color:var(--jade)}
+
